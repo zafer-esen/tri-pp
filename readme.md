@@ -6,9 +6,11 @@ A build script (mk) is provided for Linux, which first downloads the prebuilt LL
 
 Currently only Linux is supported, there are plans to add support for other operating systems.
 
-Read on if you are interested in the implementation.
+# Usage
+`./tri-pp --help` to see version number and usage information of the tool.
 
 # Implementation
+Read on if you are interested in the implementation.
 
 tri-pp has several components which are called sequentially.
 

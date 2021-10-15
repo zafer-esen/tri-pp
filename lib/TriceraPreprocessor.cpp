@@ -23,7 +23,7 @@ using namespace std;
 //
 //-----------------------------------------------------------------------------
 void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
-  
+
   // todo: process files where an error has occurred?
   // errors also occur on some inputs which TriCera would accept
   bool hadError = Ctx.getDiagnostics().hasErrorOccurred();
@@ -31,21 +31,21 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   bool collectAllTypes = hadError;
   // todo: or return without doing anything?
   // if (Ctx.getDiagnostics().hasErrorOccurred()) return;
-  
-   // collect all used functions and types
-  UsedFunAndTypeCollector usedFunsAndTypes(Ctx, collectAllFuns, 
+
+  // collect all used functions and types
+  UsedFunAndTypeCollector usedFunsAndTypes(Ctx, collectAllFuns,
                                            collectAllTypes);
-   // then remove all typedefs and remove unused record typedef declarations
+  // then remove all typedefs and remove unused record typedef declarations
   TypedefRemover typedefRemover(rewriter, Ctx, usedFunsAndTypes);
-   // then comment out all unused declarations
+  // then comment out all unused declarations
   if (!hadError)
     UnusedDeclCommenter declCommenter(rewriter, Ctx, usedFunsAndTypes);
-   // and canonise all used types
+  // and canonise all used types
   TypeCanoniser typeCanoniser(rewriter, Ctx, usedFunsAndTypes);
   // extract declStmts from inside for loop declarations
   ForLoopStmtExtractor forLoopStmtExtractor(rewriter, Ctx, usedFunsAndTypes);
-  
-   // finally add contract annotations to recursive functions
+
+  // finally add contract annotations to recursive functions
   preprocessOutput.numRecursiveFuns = 0;
   for (auto funInfo : usedFunsAndTypes.getSeenFunctions()) {
     if (funInfo->isRecursive()) {
@@ -54,7 +54,7 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
         rewriter.InsertTextBefore(decl->getBeginLoc(),
                                   "/*@ contract @*/ ");
         preprocessOutput.numRecursiveFuns ++;
-      }    
+      }
     }
   }
 
@@ -71,7 +71,7 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   std::string s = "foo";
   preprocessOutput.outputBuffer = new char[s.length()];
   std::strcpy(preprocessOutput.outputBuffer, s.c_str());
-  
+
   //llvm::outs() << "--------------------------\n";
   //llvm::outs() << "Seen functions:\n";
   //llvm::outs() << "--------------------------\n";

@@ -1,13 +1,8 @@
 cmake_minimum_required(VERSION 3.4.3)
 project(tricera-preprocessors)
-
-INCLUDE_DIRECTORIES( target/nar/depId-1.0-noarch/include )
-INCLUDE_DIRECTORIES( target/nar/depId-1.0-amd64-Linux-gpp-static/include )
-
-LINK_DIRECTORIES( nar/depId-1.0-noarch/lib )
-LINK_DIRECTORIES( nar/depId-1.0-amd64-Linux-gpp-static/lib )
-
-SET( LIBRARY_OUTPUT_PATH nar/artId-1.0-amd64-Linux-gpp-static/lib )
+set(PROJECT_VERSION "0.1.0")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp")
 
 #===============================================================================
 # 1. LOAD LLVM CONFIGURATION
@@ -18,7 +13,7 @@ SET( LIBRARY_OUTPUT_PATH nar/artId-1.0-amd64-Linux-gpp-static/lib )
 #include_directories(SYSTEM "${LLVM_INCLUDE_DIRS};${CLANG_INCLUDE_DIRS}")
 include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_deps/libclang_prebuilt-src/include"
-)
+  )
 
 #===============================================================================
 # 2. TRICERA PREPROCESSOR BUILD CONFIGURATION

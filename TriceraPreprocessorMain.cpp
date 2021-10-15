@@ -1,4 +1,5 @@
 #include "TriceraPreprocessor.hpp"
+#include "TriceraConfig.hpp"
 
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
@@ -9,6 +10,7 @@
 
 #include "llvm/Support/CommandLine.h"
 #include <string.h>
+#include <iostream>
 
 using namespace llvm;
 using namespace clang;
@@ -17,12 +19,15 @@ using namespace tooling;
 //===----------------------------------------------------------------------===//
 // Command line options
 //===----------------------------------------------------------------------===//
-static cl::OptionCategory TPCategory("tricera-preprocessor options");
-cl::opt<std::string> outputFilename("o", 
-                                    cl::desc("Specify output absolute path (required)"), 
-                                    cl::value_desc("output file absolute path"), 
+std::string optionsText = "tricera-preprocessor v" TRI_PP_VERSION " options";
+static cl::OptionCategory TPCategory(optionsText);
+cl::opt<std::string> outputFilename("o",
+                                    cl::desc("Specify output absolute path (required)"),
+                                    cl::value_desc("output file absolute path"),
                                     cl::cat(TPCategory), cl::Required);
-cl::opt<bool> quiet ("q", cl::desc("Suppress error and warning messages"), 
+cl::opt<bool> quiet ("q", cl::desc("Suppress error and warning messages"),
+                     cl::cat(TPCategory));
+cl::opt<bool> dispVer ("v", cl::desc("Display tri-pp version number"),
                      cl::cat(TPCategory));
 
 
@@ -48,18 +53,18 @@ public:
     outFile.close();
   }
 
-PreprocessOutput &preprocessOutput;
+  PreprocessOutput &preprocessOutput;
 private:
   clang::Rewriter rewriter;
   StringRef inFile;
 };
 
-std::unique_ptr<FrontendActionFactory> 
-  newTPFrontendActionFactory(PreprocessOutput &out) {
+std::unique_ptr<FrontendActionFactory>
+newTPFrontendActionFactory(PreprocessOutput &out) {
   class TPFrontendActionFactory : public FrontendActionFactory {
   public:
-    TPFrontendActionFactory(PreprocessOutput &out) : 
-                            out(out) {}
+    TPFrontendActionFactory(PreprocessOutput &out) :
+      out(out) {}
     std::unique_ptr<FrontendAction> create() override {
       return std::make_unique<TriCeraPreprocessAction>(out);
     }
@@ -68,14 +73,15 @@ std::unique_ptr<FrontendActionFactory>
   };
 
   return std::unique_ptr<FrontendActionFactory>(
-      new TPFrontendActionFactory(out));
+                                                new TPFrontendActionFactory(out));
 }
 
 int main(int argc, const char **argv) {
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, TPCategory);
+
   clang::tooling::ClangTool tool(OptionsParser.getCompilations(),
                                  OptionsParser.getSourcePathList());
-  
+
   // suppress stderr output
   int fd, n;
   if (quiet) {
@@ -86,7 +92,7 @@ int main(int argc, const char **argv) {
   }
 
   PreprocessOutput preprocessOutput;
-  preprocessOutput.hasErrorOccurred = 
+  preprocessOutput.hasErrorOccurred =
     tool.run(newTPFrontendActionFactory(preprocessOutput).get()) != 0;
 
   if (quiet) {
