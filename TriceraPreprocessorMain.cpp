@@ -25,6 +25,10 @@ cl::opt<std::string> outputFilename("o",
                                     cl::desc("Specify output absolute path (required)"),
                                     cl::value_desc("output file absolute path"),
                                     cl::cat(TPCategory), cl::Required);
+cl::opt<std::string> entryFunctionName("m",
+                                    cl::desc("Specify entry function (default: main)"),
+                                    cl::value_desc("entry function name"),
+                                    cl::cat(TPCategory), cl::init("main"));
 cl::opt<bool> quiet ("q", cl::desc("Suppress error and warning messages"),
                      cl::cat(TPCategory));
 cl::opt<bool> dispVer ("v", cl::desc("Display tri-pp version number"),

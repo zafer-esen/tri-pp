@@ -18,6 +18,8 @@ using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
+extern cl::opt<std::string> entryFunctionName;
+
 // any functions in this list will not be marked as used, and in turn will be
 // commented out later by the preprocessor (if UnusedDeclCommenter is used)
 static const std::vector<std::string> ignoredFuns = {
@@ -77,7 +79,7 @@ UsedFunAndTypeASTConsumer::UsedFunAndTypeASTConsumer (
       functionDecl().bind("allFunDecl")); // a non-recursive fun
     finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, entryMatcher), &handler);
   } else {
-    DeclarationMatcher entryMatcher = functionDecl(isMain()).bind("main");
+    DeclarationMatcher entryMatcher = functionDecl(hasName(entryFunctionName)).bind("main");
     // todo: other entry points than main
     finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, entryMatcher), &handler);
   }
