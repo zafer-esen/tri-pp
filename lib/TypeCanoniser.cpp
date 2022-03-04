@@ -41,12 +41,16 @@ TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
     hasDescendant(
       declRefExpr(hasType(qualType().bind("sizeOfType"))
       ).bind("sizeOfDeclRefExpr"))).bind("sizeOfExpr")
-  );    
+  );
+
+  DeclarationMatcher enumMatcher = enumDecl().bind("enumDecl");
 
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
     typedefUsingTypeLocMatcher), &handler);
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
     sizeOfMatcher), &handler);
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+    enumMatcher), &handler);
 }
 
 void TypeCanoniserASTConsumer::HandleTranslationUnit(clang::ASTContext &Ctx) {
@@ -78,6 +82,8 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
     Result.Nodes.getNodeAs<clang::TypedefType>("typedefType"); 
   const DeclRefExpr * sizeOfDeclRefExpr =
     Result.Nodes.getNodeAs<clang::DeclRefExpr>("sizeOfDeclRefExpr"); 
+  const EnumDecl * enumDeclStmt =
+    Result.Nodes.getNodeAs<clang::EnumDecl>("enumDecl"); 
 
   if (typedefUsingTypeLoc) {       
 
@@ -153,6 +159,32 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
     typeVisitor.TraverseType(sizeOfType->getCanonicalType());
     rewriter.ReplaceText(sizeOfExpr->getSourceRange(), 
       "sizeof(" + typeVisitor.getUnqualifiedTypeNameWithoutPtrs() + ")");
+  }
+  else if (enumDeclStmt) {
+    // Comment out trailing commas in enum declarations
+    auto it = enumDeclStmt->enumerators().begin();
+    auto itPrev = it;
+    while ((it != enumDeclStmt->enumerators().end())) {
+      itPrev = it;
+      it++;
+    }
+
+    auto lastDecl = *itPrev;
+    if(lastDecl) {
+    //SourceLocation prev_loc(
+    //  clang::Lexer::findLocationAfterToken(
+    //    locToUse,clang::tok::l_brace, sm,lopt,skipNewLines));
+      //rewriter.InsertTextAfterToken(E, "// ");
+      SourceLocation next_loc(
+        clang::Lexer::findLocationAfterToken(
+        lastDecl->getSourceRange().getEnd(),
+        clang::tok::comma, Ctx->getSourceManager(),Ctx->getLangOpts(),true));
+      if(next_loc.isValid() && editedLocations.insert(next_loc).second) {
+        rewriter.InsertTextAfterToken(lastDecl->getSourceRange().getEnd(),"/*");
+        rewriter.InsertTextBefore(next_loc, "*/");
+      }
+      
+    }
   }
   else {
     llvm_unreachable("Init handler called but could not determine match!\n");

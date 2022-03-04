@@ -12,6 +12,7 @@
 #include "UnusedDeclCommenter.hpp"
 #include "TypeCanoniser.hpp"
 #include "ForLoopStmtExtractor.hpp"
+#include "CharRewriter.hpp"
 
 using namespace clang;
 using namespace ast_matchers;
@@ -44,6 +45,9 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   TypeCanoniser typeCanoniser(rewriter, Ctx, usedFunsAndTypes);
   // extract declStmts from inside for loop declarations
   ForLoopStmtExtractor forLoopStmtExtractor(rewriter, Ctx, usedFunsAndTypes);
+  // replace char init expressions with their corresponding integer values
+  CharRewriter charRewriter(rewriter, Ctx, usedFunsAndTypes);
+
 
   // finally add contract annotations to recursive functions
   preprocessOutput.numRecursiveFuns = 0;
