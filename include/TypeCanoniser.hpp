@@ -56,6 +56,12 @@ class TypeCanoniser {
 };
 
 // AST Visitors
+/**
+ * \brief A visitor for extracting type information from the Abstract Syntax Tree (AST).
+ *
+ * Clang does not provide built-in support for collecting type information, so this visitor
+ * traverses the AST in a bottom-up manner and extracts type information as needed.
+ */
 class TypeCanoniserVisitor
 : public clang::RecursiveASTVisitor<TypeCanoniserVisitor> {
 public:
@@ -68,6 +74,9 @@ public:
     bool VisitConstantArrayType(clang::ConstantArrayType *typ);
     clang::QualType getUnqualType() { return unqualType; }
 
+    int getNumPointers() const {
+      return numPointers;
+    }
     std::string getUnqualifiedTypeName() const {
       return (unqualTypeName + std::string(numPointers, '*')); 
     }
@@ -93,4 +102,36 @@ public:
     int numPointers = 0;
     bool isFunctionPrototype = false;
     bool _convertedArrayToPtr = false; // true when converted T x[1] to T* x
+};
+
+/**
+ * \brief A visitor class for counting the number of pointer dereferences in an expression.
+ *
+ * This class derives from clang::RecursiveASTVisitor to traverse the AST of an expression
+ * and count the number of unary operator expressions that represent pointer dereferences.
+ */
+class DereferenceCounterVisitor
+: public clang::RecursiveASTVisitor<DereferenceCounterVisitor> {
+public:
+  explicit DereferenceCounterVisitor(clang::ASTContext &Ctx) : Ctx(Ctx) {
+    dereferenceCount = 0;
+  }
+  
+  bool shouldTraversePostOrder() const { return true; }
+  bool VisitExpr(clang::Expr *expr) {
+        // Check if the expression is a unary operator with opcode UO_Deref
+    if (clang::UnaryOperator *UO = llvm::dyn_cast<clang::UnaryOperator>(expr)) {
+      if (UO->getOpcode() == clang::UO_Deref) {
+        dereferenceCount++;
+      }
+    }
+    return true; // continue traversal
+  }
+  int getDereferenceCount() const {
+    return dereferenceCount;
+  }
+  
+  private:
+    clang::ASTContext &Ctx;
+    int dereferenceCount;
 };

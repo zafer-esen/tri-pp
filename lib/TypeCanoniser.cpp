@@ -157,8 +157,14 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
       Result.Nodes.getNodeAs<clang::QualType>("sizeOfType"); 
     TypeCanoniserVisitor typeVisitor(*Ctx);
     typeVisitor.TraverseType(sizeOfType->getCanonicalType());
+    DereferenceCounterVisitor derefenceCounterVisitor(*Ctx);
+    derefenceCounterVisitor.TraverseStmt(const_cast<clang::UnaryExprOrTypeTraitExpr*>(sizeOfExpr));
+    int numPointers = typeVisitor.getNumPointers() - 
+                      derefenceCounterVisitor.getDereferenceCount();
+
     rewriter.ReplaceText(sizeOfExpr->getSourceRange(), 
-      "sizeof(" + typeVisitor.getUnqualifiedTypeNameWithoutPtrs() + ")");
+      "sizeof(" + typeVisitor.getUnqualifiedTypeNameWithoutPtrs() +
+                  std::string(numPointers, '*') + ")");
   }
   else if (enumDeclStmt) {
     // Comment out trailing commas in enum declarations
@@ -196,7 +202,7 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
 // and extracts the unqualified type name (but also drops any pointers)
 //-----------------------------------------------------------------------------
 bool TypeCanoniserVisitor::VisitType(clang::Type *typ) {
-    //typ->dump();
+    // typ->dump();
     if (typ->isPointerType())
       numPointers++;
     else {
