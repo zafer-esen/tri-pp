@@ -38,9 +38,7 @@ TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
   // matches sizeof expressions such as int * x = malloc(sizeof * x);
   // these are canonised as malloc(sizeof(int *))  
   StatementMatcher sizeOfMatcher = sizeOfExpr(unaryExprOrTypeTraitExpr(
-    hasDescendant(
-      declRefExpr(hasType(qualType().bind("sizeOfType"))
-      ).bind("sizeOfDeclRefExpr"))).bind("sizeOfExpr")
+    hasDescendant(declRefExpr().bind("sizeOfDeclRefExpr"))).bind("sizeOfExpr")
   );
 
   DeclarationMatcher enumMatcher = enumDecl().bind("enumDecl");
@@ -151,20 +149,11 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
     }
   }
   else if (sizeOfDeclRefExpr) {
-    const UnaryExprOrTypeTraitExpr * sizeOfExpr =
-      Result.Nodes.getNodeAs<clang::UnaryExprOrTypeTraitExpr>("sizeOfExpr"); 
-    const QualType * sizeOfType =
-      Result.Nodes.getNodeAs<clang::QualType>("sizeOfType"); 
-    TypeCanoniserVisitor typeVisitor(*Ctx);
-    typeVisitor.TraverseType(sizeOfType->getCanonicalType());
-    DereferenceCounterVisitor derefenceCounterVisitor(*Ctx);
-    derefenceCounterVisitor.TraverseStmt(const_cast<clang::UnaryExprOrTypeTraitExpr*>(sizeOfExpr));
-    int numPointers = typeVisitor.getNumPointers() - 
-                      derefenceCounterVisitor.getDereferenceCount();
-
-    rewriter.ReplaceText(sizeOfExpr->getSourceRange(), 
-      "sizeof(" + typeVisitor.getUnqualifiedTypeNameWithoutPtrs() +
-                  std::string(numPointers, '*') + ")");
+    const auto * sizeOfExpr =
+      Result.Nodes.getNodeAs<clang::UnaryExprOrTypeTraitExpr>("sizeOfExpr");
+    QualType sizeOfType = sizeOfExpr->getArgumentExpr()->getType();
+    rewriter.ReplaceText(sizeOfExpr->getSourceRange(),
+                         "sizeof(" + sizeOfType.getCanonicalType().getAsString() + ")");
   }
   else if (enumDeclStmt) {
     // Comment out trailing commas in enum declarations
