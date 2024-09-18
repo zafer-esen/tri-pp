@@ -22,7 +22,13 @@ include_directories(
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
 
 # LLVM is normally built without RTTI. Be consistent with that.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -static")
+if(APPLE)
+  # macOS: No -static flag, crt0.o (and possibly athers) is not available as a static library.
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+else()
+  # Linux: Allow static linking
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -static")
+endif()
 
 # TOOLS
 # ===================
@@ -56,12 +62,19 @@ foreach( tool ${TRICERA_TOOLS} )
 #    )
 
 # Link with libclangTooling
+
+    if(APPLE)
+        set(LIBCLANG_BUNDLED_PATH "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/libclang_bundled.a")
+    else()
+        set(LIBCLANG_BUNDLED_PATH "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_all_archives/libclang_bundled.a")
+endif()
+
 #    include_directories(${CMAKE_SOURCE_DIR}/llvm/include)
     target_link_libraries(
       ${tool}
 #      clangTooling
-    "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_all_archives/libclangTooling.a"
-    "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_all_archives/libclang_bundled.a"
+    "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_deps/libclang_prebuilt-src/lib/libclangTooling.a"
+    "${LIBCLANG_BUNDLED_PATH}"  # Use the path based on the operating system
       m
       dl
       pthread

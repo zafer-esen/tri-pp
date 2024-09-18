@@ -52,7 +52,7 @@ public:
   void EndSourceFileAction() override {
     SourceManager &sm = rewriter.getSourceMgr();
     std::error_code error_code;
-    raw_fd_ostream outFile(outputFilename.c_str(), error_code, sys::fs::F_None);
+    raw_fd_ostream outFile(outputFilename.c_str(), error_code, sys::fs::OF_None);
     rewriter.getEditBuffer(sm.getMainFileID()).write(outFile);
     outFile.close();
   }
@@ -81,10 +81,14 @@ newTPFrontendActionFactory(PreprocessOutput &out) {
 }
 
 int main(int argc, const char **argv) {
-  clang::tooling::CommonOptionsParser OptionsParser(argc, argv, TPCategory);
-
-  clang::tooling::ClangTool tool(OptionsParser.getCompilations(),
-                                 OptionsParser.getSourcePathList());
+  auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
+  if (!OptionsParser) {
+      llvm::errs() << "Error creating CommonOptionsParser: " << llvm::toString(OptionsParser.takeError()) << "\n";
+      return 1;
+  }
+  clang::tooling::CommonOptionsParser &Parser = *OptionsParser;
+  clang::tooling::ClangTool tool(Parser.getCompilations(),
+                                 Parser.getSourcePathList());
 
   // suppress stderr output
   int fd, n;

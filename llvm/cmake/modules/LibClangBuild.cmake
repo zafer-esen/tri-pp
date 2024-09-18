@@ -38,23 +38,14 @@ set(LIBCLANG_INDEX_H Index.h)
 
 set(LIBCLANG_LINK_LIBS
   clangAST
-  clangASTMatchers
   clangBasic
   clangDriver
   clangFrontend
   clangIndex
   clangLex
-  clangParse
-  clangFrontend
-  clangCodeGen
-  clangAnalysis
-  clangRewrite
-  clangRewriteFrontend
-#  LLVMMC -lLLVMCore -lLLVMSupport
   clangSema
   clangSerialization
   clangTooling
-  clangToolingSyntax
   clangARCMigrate
   LLVMAArch64CodeGen
   LLVMAArch64AsmParser
@@ -112,7 +103,6 @@ set(LIBCLANG_LINK_LIBS
   LLVMRISCVDesc
   LLVMRISCVDisassembler
   LLVMRISCVInfo
-  LLVMRISCVUtils
   LLVMSparcCodeGen
   LLVMSparcAsmParser
   LLVMSparcDesc
@@ -127,7 +117,9 @@ set(LIBCLANG_LINK_LIBS
   LLVMWebAssemblyAsmParser
   LLVMWebAssemblyDesc
   LLVMWebAssemblyDisassembler
+  LLVMWebAssemblyUtils
   LLVMWebAssemblyInfo
+  LLVMWebAssemblyUtils
   LLVMX86CodeGen
   LLVMX86AsmParser
   LLVMX86Desc

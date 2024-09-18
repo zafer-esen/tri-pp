@@ -1,9 +1,9 @@
 if(APPLE)
-  set(LIBCLANG_PREBUILT_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-apple-darwin.tar.xz)
+  set(LIBCLANG_PREBUILT_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/clang+llvm-13.0.0-x86_64-apple-darwin.tar.xz)
 else()
-  set(LIBCLANG_PREBUILT_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz)
+  set(LIBCLANG_PREBUILT_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz)
 endif()
-set(CLANG_SOURCES_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang-11.1.0.src.tar.xz)
+set(CLANG_SOURCES_URL https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/clang-13.0.0.src.tar.xz)
 set(NCURSES_SOURCES_URL https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.2.tar.gz)
 if(APPLE)
   set(Z3_PREBUILT_URL https://github.com/Z3Prover/z3/releases/download/z3-4.8.7/z3-4.8.7-x64-osx-10.14.6.zip)
@@ -88,7 +88,7 @@ add_clang_library(libclang_static
   DEPENDS ncurses
   )
 
-set_target_properties(libclang PROPERTIES VERSION 11)
+set_target_properties(libclang PROPERTIES VERSION 13)
 
 if(APPLE)
   set(LIBCLANG_LINK_FLAGS " -Wl,-compatibility_version -Wl,1")
@@ -144,6 +144,23 @@ if(APPLE)
   set(MAKEFILE_LIBCLANG_INCLUDE "${MAKEFILE_LIBCLANG_INCLUDE} -I${CMAKE_OSX_SYSROOT}/usr/include")
 endif()
 set(MAKEFILE_LIBCLANG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
+
+if(APPLE)
+  set(LIBCLANG_INSTALL_LIBS
+    ${CMAKE_CURRENT_BINARY_DIR}/libclang_bundled.a
+    ${Z3_PREBUILT_DIR}/bin/libz3.a
+    ${Z3_SHARED_LIB}
+    ${NCURSES_BINARY_DIR}/lib/libncursesw.a
+    ${NCURSES_SHARED_LIB}
+  )
+else()
+  set(LIBCLANG_INSTALL_LIBS
+    ${ALL_ARCHIVES_DIRECTORY}/libclang_bundled.a
+    ${ALL_ARCHIVE_PATHS}
+    ${Z3_SHARED_LIB}
+    ${NCURSES_SHARED_LIB}
+  )
+endif()
 
 #set(LIBCLANG_INSTALL_LIBS
 #  ${ALL_ARCHIVES_DIRECTORY}/libclang_bundled.a
