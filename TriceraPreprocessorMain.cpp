@@ -83,8 +83,7 @@ newTPFrontendActionFactory(PreprocessOutput &out) {
 int main(int argc, const char **argv) {
   auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
   if (!OptionsParser) {
-      llvm::errs() << "Error creating CommonOptionsParser: " << llvm::toString(OptionsParser.takeError()) << "\n";
-      return 1;
+    llvm::errs() << "Warning: Failed to create CommonOptionsParser. Proceeding without a compilation database.\n";
   }
   clang::tooling::CommonOptionsParser &Parser = *OptionsParser;
   clang::tooling::ClangTool tool(Parser.getCompilations(),

@@ -21,14 +21,8 @@ include_directories(
 # Use the same C++ standard as LLVM does
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
 
-# LLVM is normally built without RTTI. Be consistent with that.
-if(APPLE)
-  # macOS: No -static flag, crt0.o is not available as a static library
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-else()
-  # Linux/Non-Apple: Allow static linking
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -static")
-endif()
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -g")
 
 # TOOLS
 # ===================
@@ -73,8 +67,8 @@ endif()
     target_link_libraries(
       ${tool}
 #      clangTooling
-    "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_deps/libclang_prebuilt-src/lib/libclangTooling.a"
-    "${LIBCLANG_BUNDLED_PATH}"  # Use the path based on the operating system
+      "${CMAKE_CURRENT_SOURCE_DIR}/llvm/build/_deps/libclang_prebuilt-src/lib/libclangTooling.a"
+      "${LIBCLANG_BUNDLED_PATH}"
       m
       dl
       pthread
