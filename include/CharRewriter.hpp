@@ -39,7 +39,7 @@ public:
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  CharRewriterMatcher handler;
+  std::unique_ptr<CharRewriterMatcher> handler;
   clang::Rewriter &rewriter;
 };
 

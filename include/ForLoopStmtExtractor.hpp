@@ -39,8 +39,8 @@ public:
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  ForLoopStmtExtractorMatcher handler;
   clang::Rewriter &rewriter;
+  std::unique_ptr<ForLoopStmtExtractorMatcher> handler;
 };
 
 class ForLoopStmtExtractor {

@@ -21,8 +21,8 @@ using namespace llvm;
 
 TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
                                   UsedFunAndTypeCollector &usedFunsAndTypes)
-                           : handler(rewriter, usedFunsAndTypes), rewriter(r) {
-  
+                           : rewriter(r) {
+  handler = std::make_unique<TypeCanoniserMatcher>(rewriter, usedFunsAndTypes);
   TypeLocMatcher typedefUsingTypeLocMatcher = typeLoc(loc(qualType(
     typedefType().bind("typedefType"), // matches nodes that use a typedef
     anyOf(
@@ -44,11 +44,11 @@ TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
   DeclarationMatcher enumMatcher = enumDecl().bind("enumDecl");
 
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-    typedefUsingTypeLocMatcher), &handler);
+    typedefUsingTypeLocMatcher), handler.get());
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-    sizeOfMatcher), &handler);
+    sizeOfMatcher), handler.get());
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-    enumMatcher), &handler);
+    enumMatcher), handler.get());
 }
 
 void TypeCanoniserASTConsumer::HandleTranslationUnit(clang::ASTContext &Ctx) {
@@ -64,7 +64,7 @@ void TypeCanoniserASTConsumer::HandleTranslationUnit(clang::ASTContext &Ctx) {
   ).bind("declStmt");
 
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-    multiDeclStmtMatcher), &handler);
+    multiDeclStmtMatcher), handler.get());
   finder.matchAST(Ctx);
 }
 

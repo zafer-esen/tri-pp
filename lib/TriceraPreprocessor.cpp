@@ -73,8 +73,9 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
 
   // todo: any string to pass to output?
   std::string s = "foo";
-  preprocessOutput.outputBuffer = new char[s.length()];
+  preprocessOutput.outputBuffer = new char[s.length()+1];
   std::strcpy(preprocessOutput.outputBuffer, s.c_str());
+  delete[] preprocessOutput.outputBuffer;
 
   //llvm::outs() << "--------------------------\n";
   //llvm::outs() << "Seen functions:\n";

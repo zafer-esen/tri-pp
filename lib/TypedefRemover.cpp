@@ -21,7 +21,7 @@ using namespace llvm;
 
 TypedefRemoverASTConsumer::TypedefRemoverASTConsumer(clang::Rewriter &r,
                                    UsedFunAndTypeCollector & usedFunsAndTypes):
-                                    handler(r, usedFunsAndTypes), rewriter(r) {
+                                    rewriter(r), handler(r, usedFunsAndTypes) {
   DeclarationMatcher typedefDeclMatcher = anyOf(
     typedefDecl( // matches typedef records
       anyOf(

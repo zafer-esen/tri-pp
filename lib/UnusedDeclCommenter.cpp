@@ -27,7 +27,8 @@ UnusedDeclCommenter::UnusedDeclCommenter(clang::Rewriter &r, clang::ASTContext &
 
 UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &r,
                                      UsedFunAndTypeCollector &usedFunsAndTypes)
-                           : handler(rewriter, usedFunsAndTypes), rewriter(r) {
+                           : rewriter(r) {
+  handler = std::make_unique<UnusedDeclCommenterMatcher>(rewriter, usedFunsAndTypes);
   DeclarationMatcher usedDeclMatcher = 
   anyOf(
     // comment out unused function decls
@@ -47,7 +48,7 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &
   );
     
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-                             usedDeclMatcher), &handler);
+                             usedDeclMatcher), handler.get());
 }
 
 void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {

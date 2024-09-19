@@ -41,8 +41,8 @@ public:
   void HandleTranslationUnit(clang::ASTContext &Ctx) override;
 private:
   clang::ast_matchers::MatchFinder finder;
-  TypeCanoniserMatcher handler;
   clang::Rewriter &rewriter;
+  std::unique_ptr<TypeCanoniserMatcher> handler;
 };
 
 // collects all seen functions and types on construction

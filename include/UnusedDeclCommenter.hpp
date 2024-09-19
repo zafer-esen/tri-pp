@@ -42,8 +42,8 @@ public:
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  UnusedDeclCommenterMatcher handler;
   clang::Rewriter &rewriter;
+  std::unique_ptr<UnusedDeclCommenterMatcher> handler;
 };
 
 // collects all seen functions and types on construction

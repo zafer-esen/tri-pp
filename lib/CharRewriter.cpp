@@ -29,11 +29,12 @@ CharRewriter::CharRewriter(clang::Rewriter &r, clang::ASTContext &Ctx,
 
 CharRewriterASTConsumer::CharRewriterASTConsumer(clang::Rewriter &r,
                                      UsedFunAndTypeCollector &usedFunsAndTypes)
-                           : handler(rewriter, usedFunsAndTypes), rewriter(r) {
+                           : rewriter(r) {
+  handler = std::make_unique<CharRewriterMatcher>(rewriter, usedFunsAndTypes);
   StatementMatcher charLitStmtMatcher = characterLiteral().bind("charLitExpr");
 
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-                             charLitStmtMatcher), &handler);
+                             charLitStmtMatcher), handler.get());
 }
 
 void CharRewriterMatcher::run(const MatchFinder::MatchResult &Result) {

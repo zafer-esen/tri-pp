@@ -37,8 +37,8 @@ public:
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  TypedefMatcher handler;
   clang::Rewriter &rewriter;
+  TypedefMatcher handler;
 };
 
 // collects all seen functions and types on construction

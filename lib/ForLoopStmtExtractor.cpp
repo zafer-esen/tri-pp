@@ -28,13 +28,15 @@ ForLoopStmtExtractor::ForLoopStmtExtractor(clang::Rewriter &r, clang::ASTContext
 
 ForLoopStmtExtractorASTConsumer::ForLoopStmtExtractorASTConsumer(clang::Rewriter &r,
                                      UsedFunAndTypeCollector &usedFunsAndTypes)
-                           : handler(rewriter, usedFunsAndTypes), rewriter(r) {
+                           : rewriter(r) {
+  handler = std::make_unique<ForLoopStmtExtractorMatcher>(rewriter, usedFunsAndTypes);
+
   StatementMatcher forLoopDeclStmtMatcher = 
     declStmt(hasParent(forStmt().bind("forStmt"))).bind("declStmt");
     // todo: comment out only if enclosing function is seen?
     
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
-                             forLoopDeclStmtMatcher), &handler);
+                             forLoopDeclStmtMatcher), handler.get());
 }
 
 void ForLoopStmtExtractorMatcher::run(const MatchFinder::MatchResult &Result) {
