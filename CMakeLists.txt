@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.3)
 project(tricera-preprocessors)
-set(PROJECT_VERSION "0.1.3")
+set(PROJECT_VERSION "0.1.4")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp")
 
@@ -23,10 +23,10 @@ set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
 
 # LLVM is normally built without RTTI. Be consistent with that.
 if(APPLE)
-  # macOS: No -static flag, crt0.o (and possibly athers) is not available as a static library.
+  # macOS: No -static flag, crt0.o is not available as a static library
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 else()
-  # Linux: Allow static linking
+  # Linux/Non-Apple: Allow static linking
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -static")
 endif()
 
