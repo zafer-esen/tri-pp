@@ -15,6 +15,11 @@ If you installed LLVM-13 but `mk` complains that it cannot find the header files
 ```
 CMAKE_CXX_FLAGS="-I/opt/llvm-13/include" ./mk
 ```
+If the build was successful `tri-pp` binary will be copied to the root directory. To test the tool try the command
+```
+./tri-pp in.c -o out.c -- -xc ; cat out.c
+```
+which should print out the preprocessed file.
 
 # Implementation
 Read on if you are interested in the implementation.
