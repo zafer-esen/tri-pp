@@ -4,7 +4,7 @@ A clang tool to preprocess C files before feeding them to TriCera.
 
 A build script (mk) is provided for Linux, which first downloads the prebuilt LLVM dependency, then builds the project against it, finally producing a static binary.
 
-Currently only Linux is supported, there are plans to add support for other operating systems.
+Supported OS: Linux, macOS
 
 # Usage
 `./tri-pp --help` to see version number and usage information of the tool.
@@ -15,6 +15,9 @@ If you installed LLVM-13 but `mk` complains that it cannot find the header files
 ```
 CMAKE_CXX_FLAGS="-I/opt/llvm-13/include" ./mk
 ```
+
+You can also have a look at the GitHub Action file at `.github/workflows`.
+
 If the build was successful `tri-pp` binary will be copied to the root directory. To test the tool try the command
 ```
 ./tri-pp in.c -o out.c -- -xc ; cat out.c
