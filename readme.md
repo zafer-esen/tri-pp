@@ -10,13 +10,10 @@ Supported OS: Linux, macOS
 `./tri-pp --help` to see version number and usage information of the tool.
 
 # Building
-The build uses `cmake`, has LLVM 13.0.0 and a few packages (`zlib1g-dev`, `libtool-bin`, and possibly others) as dependencies. If everything is set up correctly, call `./mk` to build and produce the executable `tri-pp`.
-If you installed LLVM-13 but `mk` complains that it cannot find the header files, you can try to directly point to them. E.g.,:
-```
-CMAKE_CXX_FLAGS="-I/opt/llvm-13/include" ./mk
-```
+The build uses `cmake`, and depends on a few packages (`zlib1g-dev`, `libtool-bin`, and possibly others). If everything is set up correctly, call `./mk` to build and produce the executable `tri-pp`.
+If you installed LLVM-13 but `mk` complains that it cannot find the header files, 
 
-You can also have a look at the GitHub Action file at `.github/workflows`.
+You can also have a look at the GitHub Action file at `.github/workflows` for the build setup on supported OS.
 
 If the build was successful `tri-pp` binary will be copied to the root directory. To test the tool try the command
 ```
