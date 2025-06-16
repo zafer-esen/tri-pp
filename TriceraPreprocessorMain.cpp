@@ -22,9 +22,9 @@ using namespace tooling;
 std::string optionsText = "tricera-preprocessor v" TRI_PP_VERSION " options";
 static cl::OptionCategory TPCategory(optionsText);
 cl::opt<std::string> outputFilename("o",
-                                    cl::desc("Specify output absolute path (required)"),
+                                    cl::desc("Specify output absolute path"),
                                     cl::value_desc("output file absolute path"),
-                                    cl::cat(TPCategory), cl::Required);
+                                    cl::cat(TPCategory), cl::init(""));
 cl::opt<std::string> entryFunctionName("m",
                                     cl::desc("Specify entry function (default: main)"),
                                     cl::value_desc("entry function name"),
@@ -51,10 +51,21 @@ public:
 
   void EndSourceFileAction() override {
     SourceManager &sm = rewriter.getSourceMgr();
-    std::error_code error_code;
-    raw_fd_ostream outFile(outputFilename.c_str(), error_code, sys::fs::OF_None);
-    rewriter.getEditBuffer(sm.getMainFileID()).write(outFile);
-    outFile.close();
+    std::unique_ptr<raw_pwrite_stream> outFile;
+
+    if (outputFilename.empty()) {
+      outFile = std::make_unique<raw_fd_ostream>(STDOUT_FILENO, false);
+    } else {
+      std::error_code error_code;
+      outFile = std::make_unique<raw_fd_ostream>(outputFilename.c_str(), error_code, sys::fs::OF_None);
+      if (error_code) {
+        llvm::errs() << "Error opening output file '" << outputFilename << "': " << error_code.message() << "\n";
+        preprocessOutput.hasErrorOccurred = true;
+        return;
+      }
+    }
+
+    rewriter.getEditBuffer(sm.getMainFileID()).write(*outFile);
   }
 
   PreprocessOutput &preprocessOutput;
@@ -82,10 +93,16 @@ newTPFrontendActionFactory(PreprocessOutput &out) {
 
 int main(int argc, const char **argv) {
   auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
-  if (!OptionsParser) {
-    llvm::errs() << "Warning: Failed to create CommonOptionsParser. Proceeding without a compilation database.\n";
+  if (argc == 1) { // no arguments are passed, show help
+    cl::PrintHelpMessage(false, true);
+    return 0;
   }
   clang::tooling::CommonOptionsParser &Parser = *OptionsParser;
+  if (dispVer)
+  {
+    llvm::outs() << "tricera-preprocessor v" TRI_PP_VERSION << "\n";
+    return 0;
+  }
   clang::tooling::ClangTool tool(Parser.getCompilations(),
                                  Parser.getSourcePathList());
 
