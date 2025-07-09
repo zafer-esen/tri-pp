@@ -33,7 +33,24 @@ cl::opt<bool> quiet ("q", cl::desc("Suppress error and warning messages"),
                      cl::cat(TPCategory));
 cl::opt<bool> dispVer ("v", cl::desc("Display tri-pp version number"),
                      cl::cat(TPCategory));
-
+cl::opt<bool> determinize("determinize",
+                     cl::desc("Make non-deterministic programs deterministic"),
+                     cl::cat(TPCategory));
+cl::opt<bool> makeCallsUnique("make-calls-unique",
+                     cl::desc("Ensure each function call site for non-recursive functions "
+                                     "invokes a unique function declaration/definition."),
+                     cl::cat(TPCategory));
+cl::opt<bool> normalize("normalize",
+                     cl::desc("Normalize heap access operations to read/write/alloc calls"),
+                     cl::cat(TPCategory));
+cl::opt<std::string> encode("encode",
+                     cl::desc("Encode heap operations using the specified encoding file"),
+                     cl::value_desc("encoding_file"),
+                     cl::cat(TPCategory));
+cl::opt<std::string> backend("backend",
+                     cl::desc("Specify backend for the heap encoder (tricera or seahorn)"),
+                     cl::value_desc("backend"),
+                     cl::cat(TPCategory), cl::init("tricera"));
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction

@@ -1,0 +1,42 @@
+@@PTR_TYPE
+int
+
+@@INIT
+p_g = HAVOC_INT;
+last = defObj;
+
+@@GLOBAL_DECLS
+unsigned int cnt = 0;
+int allocCtr = 0;
+int p_g;
+HEAP_TYPE last;
+HEAP_TYPE defObj;
+
+@@PREDICATE
+R(int r_cnt, HEAP_TYPE n)
+
+@@READ_FN
+HEAP_TYPE read(PTR_TYPE p) {
+  HEAP_TYPE result;
+  ++cnt;
+  if (p_g == p) {
+    assert(R(cnt, last));
+    result = last;
+  } else {
+    result = HAVOC_HEAP;
+    assume(R(cnt, result));
+  }
+  return result;
+}
+
+@@WRITE_FN
+void write(PTR_TYPE p, HEAP_TYPE e) {
+  if (p_g == p && 0 < p && p <= allocCtr)
+    last = e;
+}
+
+@@ALLOC_FN
+int alloc() {
+  int p = ++allocCtr;
+  return p;
+}

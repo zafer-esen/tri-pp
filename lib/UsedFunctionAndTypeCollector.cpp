@@ -237,12 +237,12 @@ FunctionInfo* UsedFunAndTypeCollector::getFunctionInfo (
 }
 
 bool UsedFunAndTypeCollector::functionIsSeen(
-  const clang::FunctionDecl* funDecl) {
+  const clang::FunctionDecl* funDecl) const {
   return getFunctionInfo(funDecl) != nullptr;
 }
 
 bool UsedFunAndTypeCollector::functionIsRecursive(
-  const clang::FunctionDecl* funDecl) {
+  const clang::FunctionDecl* funDecl) const {
   const FunctionInfo* funInfo = getFunctionInfo(funDecl);
   if (funInfo)
     return funInfo->isRecursive();

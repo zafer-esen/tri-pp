@@ -21,7 +21,9 @@ include_directories(
 # Use the same C++ standard as LLVM does
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
 
-set(CMAKE_BUILD_TYPE Release)
+#if(NOT CMAKE_BUILD_TYPE)
+#    set(CMAKE_BUILD_TYPE Release)
+#endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -Wuninitialized")
 
 # TOOLS
@@ -40,7 +42,13 @@ set(tri-pp_SOURCES
   lib/ForLoopStmtExtractor.cpp
   lib/CharRewriter.cpp
   lib/Utilites.cpp
-  )
+  lib/Determinizer.cpp
+  lib/ExecutionCountAnalyzer.cpp
+  lib/NondetLoopGuardRewriter.cpp
+  lib/UniqueCallSiteTransformer.cpp
+  lib/HeapAccessNormalizer.cpp
+  lib/HeapEncoder.cpp
+)
 
 # CONFIGURATION
 # ===================
@@ -49,7 +57,8 @@ foreach( tool ${TRICERA_TOOLS} )
     add_executable(
       ${tool}
       ${${tool}_SOURCES}
-      )
+            include/Determinizer.hpp
+    )
 
 #    add_library(${tool} SHARED
 #      ${${tool}_SOURCES}

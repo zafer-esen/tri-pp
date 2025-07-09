@@ -1,0 +1,22 @@
+@@PTR_TYPE
+HEAP_TYPE *
+
+@@GLOBAL_DECLS
+#include <stdlib.h>
+HEAP_TYPE defObj;
+
+@@READ_FN
+HEAP_TYPE read(PTR_TYPE p) {
+  return *p;
+}
+
+@@WRITE_FN
+void write(PTR_TYPE p, HEAP_TYPE e) {
+  *p = e;
+}
+
+@@ALLOC_FN
+PTR_TYPE alloc(HEAP_TYPE e) {
+  PTR_TYPE p = malloc(sizeof(HEAP_TYPE));
+  return p;
+}
