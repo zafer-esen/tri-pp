@@ -2,18 +2,11 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
-#include "ExecutionCountAnalyzer.hpp" // Include the new analyzer
+#include "ExecutionCountAnalyzer.hpp"
 #include <string>
 #include <vector>
-#include <map>
 
 class DeterminizerVisitor;
-
-struct UnboundedInputInfo {
-    std::string globalArrayName;
-    std::string localArrayName;
-    std::string indexName;
-};
 
 class Determinizer {
 public:
@@ -27,7 +20,7 @@ private:
 
     clang::Rewriter &TheRewriter;
     clang::ASTContext &Context;
-    const ExecutionCountAnalyzer &ExecAnalyzer; // Store a reference to the analysis results
+    const ExecutionCountAnalyzer &ExecAnalyzer;
 
     const clang::FunctionDecl* mainFunc = nullptr;
     int inputCounter = 1;
@@ -35,7 +28,8 @@ private:
     std::vector<std::string> headerInputNames;
     std::string globalDeclarations;
     std::string mainInitializations;
-    std::map<std::string, UnboundedInputInfo> typeToArrayInfoMap;
+
+    bool dethavocIntFunctionsInjected = false;
 };
 
 class DeterminizerVisitor : public clang::RecursiveASTVisitor<DeterminizerVisitor> {

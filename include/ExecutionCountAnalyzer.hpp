@@ -1,6 +1,5 @@
 #pragma once
 
-#include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/Stmt.h"
 #include "llvm/ADT/DenseMap.h"

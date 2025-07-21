@@ -265,7 +265,7 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
     if (!pInfo.inputs.empty()) {
         for (size_t i = 0; i < pInfo.inputs.size(); ++i) {
             const auto& n = pInfo.inputs[i];
-            inputDeclsStr += (n.find("ARR") != std::string::npos ? "int " + n + "[]" : "int " + n) + (i < pInfo.inputs.size() - 1 ? ", " : "");
+            inputDeclsStr += "int " + n + (i < pInfo.inputs.size() - 1 ? ", " : "");
             inputArgsStr += n + (i < pInfo.inputs.size() - 1 ? ", " : "");
         }
     }
@@ -287,7 +287,6 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
 
         if (backend == Backend::TriCera) {
             std::string triCeraInputDecls = inputDeclsStr;
-            replaceAll(triCeraInputDecls, "[]", "");
             if (!pInfo.inputs.empty()) {
                 size_t openParen = finalSig.find('(');
                 if (openParen != std::string::npos) {
@@ -328,7 +327,6 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
                         if (star_pos != std::string::npos && star_pos > pos) pos = star_pos;
                     }
                     std::string varName = (pos == std::string::npos) ? segment : segment.substr(pos + 1);
-                    if (varName.back() == ']') { varName.pop_back(); varName.pop_back(); }
                     if (!first) callArgs += ", ";
                     callArgs += varName;
                     first = false;
