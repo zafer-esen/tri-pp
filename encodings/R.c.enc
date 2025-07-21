@@ -3,14 +3,14 @@ int
 
 @@INIT
 p_g = HAVOC_INT;
-last = defObj;
+last = HAVOC_HEAP;
 
 @@GLOBAL_DECLS
 unsigned int cnt = 0;
 int allocCtr = 0;
 int p_g;
 HEAP_TYPE last;
-HEAP_TYPE defObj;
+void free(int p){}
 
 @@PREDICATE
 R(int r_cnt, HEAP_TYPE n)
@@ -38,5 +38,8 @@ void write(PTR_TYPE p, HEAP_TYPE e) {
 @@ALLOC_FN
 int alloc() {
   int p = ++allocCtr;
+  if(p_g == p) {
+    last = HAVOC_HEAP;
+  }
   return p;
 }

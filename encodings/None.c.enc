@@ -16,7 +16,7 @@ void write(PTR_TYPE p, HEAP_TYPE e) {
 }
 
 @@ALLOC_FN
-PTR_TYPE alloc(HEAP_TYPE e) {
+PTR_TYPE alloc() {
   PTR_TYPE p = malloc(sizeof(HEAP_TYPE));
   return p;
 }

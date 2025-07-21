@@ -4,14 +4,14 @@ int
 @@INIT
 p_g = HAVOC_INT;
 HEAP_TYPE _ttt = HAVOC_HEAP;
-assert(W(0, defObj));
+assert(W(0, _ttt));
 
 @@GLOBAL_DECLS
 int allocCtr = 0;
 unsigned int cnt = 0;
 unsigned int last_cnt = 0;
 int p_g;
-HEAP_TYPE defObj;
+void free(int p){}
 
 @@PREDICATE
 R(int cnt, int last_cnt)
@@ -46,10 +46,10 @@ void write(PTR_TYPE p, HEAP_TYPE e) {
 }
 
 @@ALLOC_FN
-int alloc(HEAP_TYPE e) {
+int alloc() {
   int p = ++allocCtr;
   ++cnt;
-  assert(W(cnt, e));
+  assert(W(cnt, HAVOC_HEAP));
   if (p_g == p) { last_cnt = cnt; }
   return p;
 }

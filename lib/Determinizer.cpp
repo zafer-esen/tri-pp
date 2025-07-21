@@ -59,9 +59,22 @@ bool DeterminizerVisitor::VisitFunctionDecl(clang::FunctionDecl *F) {
     return true;
 }
 
+static const std::set<std::string> functionsToIgnore = {
+    "reach_error", "__assert_fail", "malloc", "calloc", "realloc", "free",
+    "myexit", "assume_abort_if_not", "abort", "assert", "assume", "printf"
+};
+
 bool DeterminizerVisitor::isNondetCall(const clang::CallExpr* call) {
     const clang::FunctionDecl* callee = call->getDirectCallee();
     if (!callee) return false;
+
+    if (callee->getReturnType()->isVoidType()) {
+        return false;
+    }
+
+    if (functionsToIgnore.count(callee->getNameAsString())) {
+        return false;
+    }
 
     const clang::FunctionDecl* canonicalDecl = callee->getCanonicalDecl();
 
@@ -97,8 +110,8 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
         std::string localVar = baseName;
 
         D.headerInputNames.push_back(globalVar);
-        D.globalDeclarations += "volatile " + returnTypeStr + " " + globalVar + ";\n";
-        D.mainInitializations += "  volatile " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
+        D.globalDeclarations += returnTypeStr + " " + globalVar + ";\n";
+        D.mainInitializations += "  " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
         D.mainInitializations += "  " + globalVar + " = " + localVar + ";\n";
         D.TheRewriter.ReplaceText(call->getSourceRange(), globalVar);
 
@@ -115,8 +128,8 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
             D.typeToArrayInfoMap[returnTypeStr] = names;
             D.headerInputNames.push_back(names.globalArrayName);
 
-            D.globalDeclarations += "volatile " + returnTypeStr + " " + names.globalArrayName + "[];\n";
-            D.globalDeclarations += "volatile int " + names.indexName + " = 0;\n";
+            D.globalDeclarations += "" + returnTypeStr + " " + names.globalArrayName + "[];\n";
+            D.globalDeclarations += "int " + names.indexName + " = 0;\n";
             D.mainInitializations += "  " + returnTypeStr + " " + names.localArrayName + "[] = _; // only supported by TriCera using -mathArrays\n";
             D.mainInitializations += "  " + names.globalArrayName + " = " + names.localArrayName + ";\n";
         } else {

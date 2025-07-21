@@ -25,15 +25,36 @@ ProgramInfo parseProgramHints(ASTContext &Ctx) {
     SourceManager &SM = Ctx.getSourceManager();
     FileID mainFileID = SM.getMainFileID();
     if (mainFileID.isInvalid()) return info;
-    StringRef fileContent = SM.getBufferData(mainFileID);
-    std::string contentStr = fileContent.str();
-    std::regex heapRegex(R"(HEAP_TYPE:\s*([^\r\n]*))"), inputRegex(R"(INPUT:\s*([^\r\n]*))");
+
+    StringRef fileContentRef = SM.getBufferData(mainFileID);
+    std::string contentStr = fileContentRef.str();
+
+    std::regex heapRegex(R"(HEAP_TYPE:\s*([^\r\n]*))");
+    std::regex stackRegex(R"(STACK_PTR_TYPE:\s*([^\r\n]*))");
+    std::regex inputRegex(R"(INPUT:\s*([^\r\n]*))");
     std::smatch match;
+
     if (std::regex_search(contentStr, match, heapRegex) && match.size() > 1) {
         info.heapType = match[1].str();
         info.heapType.erase(info.heapType.find_last_not_of(" \t") + 1);
         info.hintFound = true;
+        if (!info.heapType.empty()) {
+            size_t pos = info.heapType.find_last_of(" ");
+            info.heapTypeName = (pos == std::string::npos) ? info.heapType : info.heapType.substr(pos + 1);
+        }
     }
+
+    auto words_begin = std::sregex_iterator(contentStr.begin(), contentStr.end(), stackRegex);
+    auto words_end = std::sregex_iterator();
+    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        std::smatch m = *i;
+        if (m.size() > 1) {
+            std::string stackType = m[1].str();
+            stackType.erase(stackType.find_last_not_of(" \t") + 1);
+            if (!stackType.empty()) info.stackPtrTypes.push_back(stackType);
+        }
+    }
+
     if (std::regex_search(contentStr, match, inputRegex) && match.size() > 1) {
         std::stringstream ss(match[1].str());
         std::string input;
@@ -45,66 +66,48 @@ ProgramInfo parseProgramHints(ASTContext &Ctx) {
     }
     return info;
 }
-
 EncodingInfo parseEncodingFile(const std::string& filename) {
     EncodingInfo info;
     std::ifstream file(filename);
     if (!file.is_open()) return info;
-
     enum class State { None, PtrType, Init, GlobalDecls, Predicate, ReadFn, WriteFn, AllocFn };
     std::map<std::string, State> tagMap = {
-        {"@@PTR_TYPE", State::PtrType},
-        {"@@INIT", State::Init},
-        {"@@GLOBAL_DECLS", State::GlobalDecls},
-        {"@@PREDICATE", State::Predicate},
-        {"@@READ_FN", State::ReadFn},
-        {"@@WRITE_FN", State::WriteFn},
-        {"@@ALLOC_FN", State::AllocFn}
+        {"@@PTR_TYPE", State::PtrType},{"@@INIT", State::Init},{"@@GLOBAL_DECLS", State::GlobalDecls},
+        {"@@PREDICATE", State::Predicate},{"@@READ_FN", State::ReadFn},{"@@WRITE_FN", State::WriteFn},{"@@ALLOC_FN", State::AllocFn}
     };
-
     State currentState = State::None;
     std::stringstream currentContent;
     bool predicateTagFound = false;
     std::string line;
-
     auto commitContent = [&](State s) {
         if (s == State::None) return;
         std::string content = currentContent.str();
-
-        // **FIX**: Robustly trim all leading/trailing whitespace, including newlines.
         size_t first = content.find_first_not_of(" \t\r\n");
-        if (std::string::npos == first) {
-            content = "";
-        } else {
+        if (std::string::npos == first) content = "";
+        else {
             size_t last = content.find_last_not_of(" \t\r\n");
             content = content.substr(first, (last - first + 1));
         }
-
         switch (s) {
-            case State::PtrType:     info.ptrType = content; break;
-            case State::Init:        info.initBlock = content; break;
+            case State::PtrType: info.ptrType = content; break;
+            case State::Init: info.initBlock = content; break;
             case State::GlobalDecls: info.globalDecls = content; break;
-            case State::ReadFn:      info.readFn = content; break;
-            case State::WriteFn:     info.writeFn = content; break;
-            case State::AllocFn:     info.allocFn = content; break;
+            case State::ReadFn: info.readFn = content; break;
+            case State::WriteFn: info.writeFn = content; break;
+            case State::AllocFn: info.allocFn = content; break;
             default: break;
         }
-        currentContent.str("");
-        currentContent.clear();
+        currentContent.str(""); currentContent.clear();
     };
-
     while (std::getline(file, line)) {
         std::string trimmed_line = line;
         trimmed_line.erase(0, line.find_first_not_of(" \t\r\n"));
         trimmed_line.erase(trimmed_line.find_last_not_of(" \t\r\n") + 1);
-
         auto it = tagMap.find(trimmed_line);
         if (it != tagMap.end()) {
             commitContent(currentState);
             currentState = it->second;
-            if (currentState == State::Predicate) {
-                predicateTagFound = true;
-            }
+            if (currentState == State::Predicate) predicateTagFound = true;
         } else if (predicateTagFound) {
             size_t name_start = 0;
             while(name_start < trimmed_line.length() && isspace(trimmed_line[name_start])) name_start++;
@@ -116,13 +119,10 @@ EncodingInfo parseEncodingFile(const std::string& filename) {
             }
             predicateTagFound = false;
         } else {
-            if (currentState != State::None) {
-                currentContent << line << "\n";
-            }
+            if (currentState != State::None) currentContent << line << "\n";
         }
     }
     commitContent(currentState);
-
     info.loaded = true;
     return info;
 }
@@ -154,69 +154,76 @@ private:
 
 class PointerRewriterVisitor : public RecursiveASTVisitor<PointerRewriterVisitor> {
 public:
-    explicit PointerRewriterVisitor(Rewriter &R, const std::string& ptrTypeStr)
-      : TheRewriter(R), ptrType(ptrTypeStr) {}
+    explicit PointerRewriterVisitor(Rewriter &R, ASTContext &Ctx, const ProgramInfo& PInfo, const std::string& ptrTypeStr)
+      : TheRewriter(R), SM(Ctx.getSourceManager()), LangOpts(Ctx.getLangOpts()), pInfo(PInfo), ptrType(ptrTypeStr) {}
 
-    bool VisitVarDecl(VarDecl* D) {
-        // FieldDecls and ParmVarDecls are handled by their own more specific visitors below.
-        if (isa<FieldDecl>(D) || isa<ParmVarDecl>(D)) {
-            return true;
-        }
-
-        if (D->getType()->isPointerType()) {
-            rewrite(D->getTypeSourceInfo());
-        }
-        return true;
-    }
-
-    bool VisitFieldDecl(FieldDecl* FD) {
-        if (FD->getType()->isPointerType()) {
-            rewrite(FD->getTypeSourceInfo());
-        }
-        return true;
-    }
-
-    // Handles function parameters, with an exception for main().
-    bool VisitParmVarDecl(ParmVarDecl* PVD) {
-        if (auto* FD = dyn_cast<FunctionDecl>(PVD->getDeclContext())) {
-            if (FD->isMain()) {
-                return true; // Skip rewriting parameters of main
-            }
-        }
-
-        if (PVD->getType()->isPointerType()) {
-            rewrite(PVD->getTypeSourceInfo());
-        }
-        return true;
-    }
-
-    // Handles function return types.
-    bool VisitFunctionDecl(FunctionDecl* FD) {
-        if (FD->getReturnType()->isPointerType()) {
-            SourceRange range = FD->getReturnTypeSourceRange();
-            if (range.isValid()) {
-                rewrite(range);
-            }
-        }
-        return true;
-    }
+    bool VisitVarDecl(VarDecl* D) { decideAndRewrite(D->getType(), D->getTypeSourceInfo()); return true; }
+    bool VisitFieldDecl(FieldDecl* FD) { decideAndRewrite(FD->getType(), FD->getTypeSourceInfo()); return true; }
+    bool VisitParmVarDecl(ParmVarDecl* PVD) { if (isMainParam(PVD)) return true; decideAndRewrite(PVD->getType(), PVD->getTypeSourceInfo()); return true; }
+    bool VisitFunctionDecl(FunctionDecl* FD) { decideAndRewrite(FD->getReturnType(), FD->getReturnTypeSourceRange()); return true; }
+    bool VisitCStyleCastExpr(CStyleCastExpr* E) { decideAndRewrite(E->getType(), E->getTypeInfoAsWritten(), E); return true; }
 
 private:
-    void rewrite(TypeSourceInfo* TSI) {
-        if (TSI) {
-            rewrite(TSI->getTypeLoc().getSourceRange());
+    void decideAndRewrite(QualType qt, TypeSourceInfo* tsi, CStyleCastExpr* castExpr = nullptr) {
+        if (tsi) decideAndRewrite(qt, tsi->getTypeLoc().getSourceRange(), castExpr);
+    }
+
+    void decideAndRewrite(QualType qt, const SourceRange& range, CStyleCastExpr* castExpr = nullptr) {
+        if (!qt->isPointerType() || !range.isValid() || pInfo.heapTypeName.empty()) return;
+
+        std::string replacementText = getReplacementText(qt);
+
+        if (!replacementText.empty()) {
+            if (castExpr && replacementText == ptrType) {
+                Expr* subExpr = castExpr->getSubExpr()->IgnoreParenImpCasts();
+                if (!subExpr) return;
+                StringRef text = Lexer::getSourceText(CharSourceRange::getTokenRange(subExpr->getSourceRange()), SM, LangOpts);
+                TheRewriter.ReplaceText(castExpr->getSourceRange(), text);
+            } else {
+                if (replacementText.back() != '*' && !isspace(replacementText.back())) {
+                    replacementText += ' ';
+                }
+                TheRewriter.ReplaceText(range, replacementText);
+            }
         }
     }
 
-    void rewrite(const SourceRange& range) {
-        std::string replacementText = ptrType;
-        if (!replacementText.empty() && replacementText.back() != '*' && !isspace(replacementText.back())) {
-            replacementText += ' ';
+    std::string getReplacementText(QualType qt) {
+        QualType canonicalType = qt.getCanonicalType().getUnqualifiedType();
+        if (!canonicalType->isPointerType()) return "";
+
+        if (const auto* outerPtr = canonicalType->getAs<PointerType>()) {
+            if (const auto* innerPtr = outerPtr->getPointeeType()->getAs<PointerType>()) {
+                if (const auto* record = innerPtr->getPointeeType()->getAs<RecordType>()) {
+                    if (record->getDecl()->getNameAsString() == pInfo.heapTypeName) {
+                        return ptrType + "*";
+                    }
+                }
+            }
         }
-        TheRewriter.ReplaceText(range, replacementText);
+
+        if (const auto* directPtr = canonicalType->getAs<PointerType>()) {
+            if (const auto* record = directPtr->getPointeeType()->getAs<RecordType>()) {
+                if (record->getDecl()->getNameAsString() == pInfo.heapTypeName) {
+                    return ptrType;
+                }
+            }
+        }
+
+        return "";
+    }
+
+    bool isMainParam(ParmVarDecl* PVD) {
+        if (auto* FD = dyn_cast<FunctionDecl>(PVD->getDeclContext())) {
+            return FD->isMain();
+        }
+        return false;
     }
 
     Rewriter &TheRewriter;
+    SourceManager &SM;
+    const LangOptions &LangOpts;
+    const ProgramInfo& pInfo;
     const std::string ptrType;
 };
 
@@ -238,18 +245,17 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
     std::string finalAbstractPtrType = eInfo.ptrType;
     replaceAll(finalAbstractPtrType, "HEAP_TYPE", pInfo.heapType);
 
-    replaceAll(eInfo.globalDecls, "HEAP_TYPE", pInfo.heapType);
-    replaceAll(eInfo.readFn, "HEAP_TYPE", pInfo.heapType);
-    replaceAll(eInfo.writeFn, "HEAP_TYPE", pInfo.heapType);
-    replaceAll(eInfo.allocFn, "HEAP_TYPE", pInfo.heapType);
+    std::string havocIntExpr = intHavocFn + "()";
+    std::string havocHeapExpr = heapHavocFn + "()";
+    for (auto* block : {&eInfo.initBlock, &eInfo.readFn, &eInfo.writeFn, &eInfo.allocFn, &eInfo.globalDecls}) {
+        replaceAll(*block, "HAVOC_INT", havocIntExpr);
+        replaceAll(*block, "HAVOC_HEAP", havocHeapExpr);
+    }
 
-    replaceAll(eInfo.readFn, "PTR_TYPE", finalAbstractPtrType);
-    replaceAll(eInfo.writeFn, "PTR_TYPE", finalAbstractPtrType);
-    replaceAll(eInfo.allocFn, "PTR_TYPE", finalAbstractPtrType);
-
-    replaceAll(eInfo.initBlock, "HAVOC_INT", intHavocFn + "()");
-    replaceAll(eInfo.initBlock, "HAVOC_HEAP", heapHavocFn + "()");
-    replaceAll(eInfo.readFn, "HAVOC_HEAP", heapHavocFn + "()");
+    for (auto* block : {&eInfo.initBlock, &eInfo.readFn, &eInfo.writeFn, &eInfo.allocFn, &eInfo.globalDecls}) {
+        replaceAll(*block, "HEAP_TYPE", pInfo.heapType);
+        replaceAll(*block, "PTR_TYPE", finalAbstractPtrType);
+    }
 
     std::string nondetDeclarations;
     if (ndVisitor.getIntFnName().empty()) nondetDeclarations += "extern int " + intHavocFn + "();\n";
@@ -267,25 +273,39 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
     for (auto const& pair : eInfo.predicates) {
         const std::string& name = pair.first;
         const std::string& sig = pair.second;
-
         if (!pInfo.inputs.empty()) {
-            replaceAll(eInfo.readFn, name + "(", name + "(" + inputArgsStr + ", ");
-            replaceAll(eInfo.writeFn, name + "(", name + "(" + inputArgsStr + ", ");
+            std::string replacement = name + "(" + inputArgsStr + ", ";
+
+            // Apply the replacement to all relevant code blocks
+            replaceAll(eInfo.readFn, name + "(", replacement);
+            replaceAll(eInfo.writeFn, name + "(", replacement);
+            replaceAll(eInfo.initBlock, name + "(", replacement);
+            replaceAll(eInfo.allocFn, name + "(", replacement);
         }
         std::string finalSig = sig;
         replaceAll(finalSig, "HEAP_TYPE", pInfo.heapType);
-        if (!pInfo.inputs.empty()) {
-            size_t openParen = finalSig.find('(');
-            if (openParen != std::string::npos) {
-                std::string content = finalSig.substr(openParen + 1);
-                content.erase(0, content.find_first_not_of(" \t"));
-                finalSig.insert(openParen + 1, inputDeclsStr + (content.rfind(')', 0) != 0 ? ", " : ""));
-            }
-        }
 
         if (backend == Backend::TriCera) {
+            std::string triCeraInputDecls = inputDeclsStr;
+            replaceAll(triCeraInputDecls, "[]", "");
+            if (!pInfo.inputs.empty()) {
+                size_t openParen = finalSig.find('(');
+                if (openParen != std::string::npos) {
+                    std::string content = finalSig.substr(openParen + 1);
+                    content.erase(0, content.find_first_not_of(" \t"));
+                    finalSig.insert(openParen + 1, triCeraInputDecls + (content.rfind(')', 0) != 0 ? ", " : ""));
+                }
+            }
             predicateDeclarations += "/*$ " + finalSig + " $*/\n";
         } else { // SeaHorn
+            if (!pInfo.inputs.empty()) {
+                size_t openParen = finalSig.find('(');
+                if (openParen != std::string::npos) {
+                    std::string content = finalSig.substr(openParen + 1);
+                    content.erase(0, content.find_first_not_of(" \t"));
+                    finalSig.insert(openParen + 1, inputDeclsStr + (content.rfind(')', 0) != 0 ? ", " : ""));
+                }
+            }
             std::string predName = name;
             std::string externPredName = "pred" + predName;
             std::string argsWithTypes = finalSig.substr(finalSig.find("("));
@@ -348,15 +368,7 @@ HeapEncoder::HeapEncoder(Rewriter &R, ASTContext &Ctx, const std::string &encodi
     R.InsertText(ipVisitor.getInjectionPoint(), headerDecls, true, true);
 
     if (!finalAbstractPtrType.empty()) {
-        PointerRewriterVisitor ptrVisitor(R, finalAbstractPtrType);
+        PointerRewriterVisitor ptrVisitor(R, Ctx, pInfo, finalAbstractPtrType);
         ptrVisitor.TraverseDecl(Ctx.getTranslationUnitDecl());
-    }
-
-    if (backend == Backend::SeaHorn) {
-        RewriteBuffer &EB = R.getEditBuffer(mainFileID);
-        std::string finalCode(EB.begin(), EB.end());
-        replaceAll(finalCode, "assert", "sassert");
-        finalCode = "#include \"seahorn/seasynth.h\"\n" + finalCode;
-        R.ReplaceText(SourceRange(SM.getLocForStartOfFile(mainFileID), SM.getLocForEndOfFile(mainFileID)), finalCode);
     }
 }

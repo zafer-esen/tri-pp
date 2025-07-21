@@ -13,6 +13,45 @@ using clang::SourceRange;
 using clang::LangOptions;
 using clang::Token;
 
+static const std::set<std::string> functionsToNotClone = {
+  // reach_error etc. we do not need to clone
+  "reach_error", "__assert_fail", "malloc", "calloc", "realloc", "free",
+  "myexit", "assume_abort_if_not", "abort", "assert", "assume", "printf"
+};
+
+static bool isLeafFunction(const FunctionDecl *FD) {
+  if (!FD->hasBody()) {
+    return false;
+  }
+
+  class NonIgnoredCallFinder : public RecursiveASTVisitor<NonIgnoredCallFinder> {
+    bool hasNonIgnoredCall = false;
+  public:
+    bool VisitCallExpr(const CallExpr *CE) {
+      const FunctionDecl* calleeFD = CE->getDirectCallee();
+
+      if (!calleeFD) {
+        hasNonIgnoredCall = true;
+        return false;
+      }
+
+      if (functionsToNotClone.count(calleeFD->getNameAsString())) {
+        return true;
+      }
+
+      hasNonIgnoredCall = true;
+      return false;
+    }
+
+    bool getHasNonIgnoredCall() const { return hasNonIgnoredCall; }
+  };
+
+  NonIgnoredCallFinder finder;
+  finder.TraverseStmt(FD->getBody());
+
+  return !finder.getHasNonIgnoredCall();
+}
+
 UniqueCallTransformer::UniqueCallTransformer(
     clang::Rewriter &R, clang::ASTContext &Ctx, const UsedFunAndTypeCollector &U)
     : rewriter(R), Ctx(Ctx), usedFunsAndTypes(U) {}
@@ -43,6 +82,11 @@ void UniqueCallTransformer::transform() {
     const auto& sites = pair.second;
     auto funInfo = usedFunsAndTypes.getFunctionInfo(FD);
     if ((funInfo && funInfo->isRecursive()) || sites.size() <= 1) {
+      continue;
+    }
+
+    if (FD->getReturnType()->isVoidType() || isLeafFunction(FD) ||
+      functionsToNotClone.count(FD->getNameAsString())) {
       continue;
     }
 
@@ -82,22 +126,28 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
   SourceLocation endLoc = declToClone->getEndLoc();
 
   if (!declToClone->hasBody()) {
-    // Find the semicolon and update the end location.
     llvm::Optional<Token> nextToken = clang::Lexer::findNextToken(endLoc, SM, LangOpts);
     if (nextToken && nextToken->is(clang::tok::semi)) {
-      endLoc = nextToken->getLocation(); // Get start of the semi token
+      endLoc = nextToken->getLocation();
     }
   }
-  // For a function with a body, declToClone->getEndLoc() correctly points to the '}'.
 
   SourceLocation realEndLoc = clang::Lexer::getLocForEndOfToken(endLoc, 0, SM, LangOpts);
-  SourceRange fullDeclRange(startLoc, realEndLoc);
+  SourceRange rangeToCopy(startLoc, realEndLoc);
 
   std::string originalFuncText = clang::Lexer::getSourceText(
-      clang::CharSourceRange::getCharRange(fullDeclRange), SM, LangOpts).str();
-
+      clang::CharSourceRange::getCharRange(rangeToCopy), SM, LangOpts).str();
 
   std::vector<const CallExpr *> innerCalls;
+  class CallExprVisitor : public RecursiveASTVisitor<CallExprVisitor> {
+    std::vector<const CallExpr *> &innerCalls;
+  public:
+    explicit CallExprVisitor(std::vector<const CallExpr *> &calls) : innerCalls(calls) {}
+    bool VisitCallExpr(const CallExpr *CE) {
+        if (CE->getDirectCallee()) { innerCalls.push_back(CE); }
+        return true;
+    }
+  };
   CallExprVisitor visitor(innerCalls);
   if (declToClone->hasBody()) {
     visitor.TraverseStmt(declToClone->getBody());
@@ -113,33 +163,44 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
     auto funInfo = usedFunsAndTypes.getFunctionInfo(innerCallee);
     if (funInfo && funInfo->isRecursive()) continue;
 
-    std::string newInnerName = getOrCreateClone(innerCallee);
-    SourceRange range = innerCE->getCallee()->getSourceRange();
+    if (allCallSites.count(innerCallee) && allCallSites[innerCallee].size() > 1) {
+      if (innerCallee->getReturnType()->isVoidType() || isLeafFunction(innerCallee) ||
+          functionsToNotClone.count(innerCallee->getNameAsString())) {
+        continue;
+      }
 
-    unsigned offset = SM.getDecomposedLoc(range.getBegin()).second -
-                      SM.getDecomposedLoc(fullDeclRange.getBegin()).second;
-    unsigned len = clang::Lexer::MeasureTokenLength(range.getBegin(), SM, LangOpts);
-    originalFuncText.replace(offset, len, newInnerName);
+      std::string newInnerName = getOrCreateClone(innerCallee);
+      SourceRange range = innerCE->getCallee()->getSourceRange();
+
+      unsigned offset = SM.getDecomposedLoc(range.getBegin()).second -
+                        SM.getDecomposedLoc(rangeToCopy.getBegin()).second;
+      unsigned len = clang::Lexer::MeasureTokenLength(range.getBegin(), SM, LangOpts);
+      originalFuncText.replace(offset, len, newInnerName);
+    }
   }
 
   SourceRange nameRange = declToClone->getNameInfo().getSourceRange();
   unsigned nameOffset = SM.getDecomposedLoc(nameRange.getBegin()).second -
-                        SM.getDecomposedLoc(fullDeclRange.getBegin()).second;
+                        SM.getDecomposedLoc(rangeToCopy.getBegin()).second;
   unsigned nameLen = clang::Lexer::MeasureTokenLength(nameRange.getBegin(), SM, LangOpts);
   originalFuncText.replace(nameOffset, nameLen, newName);
 
+  if (!declToClone->hasBody() && !llvm::StringRef(originalFuncText).startswith("extern ")) {
+      originalFuncText.insert(0, "extern ");
+  }
+
   const FunctionDecl *mostRecentDecl = FD->getMostRecentDecl();
   SourceLocation insertPos;
-
-  if (mostRecentDecl->hasBody()) {
-    insertPos = clang::Lexer::getLocForEndOfToken(mostRecentDecl->getEndLoc(), 0, SM, LangOpts);
+  SourceRange mostRecentRange = mostRecentDecl->getSourceRange();
+  if (!mostRecentDecl->hasBody()) {
+      llvm::Optional<Token> nextToken = clang::Lexer::findNextToken(mostRecentRange.getEnd(), SM, LangOpts);
+      if (nextToken && nextToken->is(clang::tok::semi)) {
+          insertPos = nextToken->getEndLoc();
+      } else {
+          insertPos = clang::Lexer::getLocForEndOfToken(mostRecentRange.getEnd(), 0, SM, LangOpts);
+      }
   } else {
-    llvm::Optional<Token> nextToken = clang::Lexer::findNextToken(mostRecentDecl->getEndLoc(), SM, LangOpts);
-    if (nextToken && nextToken->is(clang::tok::semi)) {
-        insertPos = nextToken->getEndLoc();
-    } else {
-        insertPos = clang::Lexer::getLocForEndOfToken(mostRecentDecl->getEndLoc(), 0, SM, LangOpts);
-    }
+      insertPos = clang::Lexer::getLocForEndOfToken(mostRecentDecl->getEndLoc(), 0, SM, LangOpts);
   }
 
   rewriter.InsertText(insertPos, "\n\n" + originalFuncText);

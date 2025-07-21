@@ -10,9 +10,11 @@
 enum class Backend { TriCera, SeaHorn };
 
 struct ProgramInfo {
-    std::string heapType;
-    std::vector<std::string> inputs;
     bool hintFound = false;
+    std::string heapType;
+    std::string heapTypeName;
+    std::vector<std::string> stackPtrTypes;
+    std::vector<std::string> inputs;
 };
 
 struct EncodingInfo {
