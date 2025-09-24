@@ -14,8 +14,6 @@
 #include "CharRewriter.hpp"
 #include "Determinizer.hpp"
 #include "ExecutionCountAnalyzer.hpp"
-#include "HeapAccessNormalizer.hpp"
-#include "HeapEncoder.hpp"
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
 
@@ -24,10 +22,8 @@ using namespace ast_matchers;
 using namespace std;
 extern llvm::cl::opt<bool> determinize;
 extern llvm::cl::opt<bool> makeCallsUnique;
-extern llvm::cl::opt<bool> normalize;
 extern llvm::cl::opt<std::string> entryFunctionName;
 extern llvm::cl::opt<std::string> encode;
-extern llvm::cl::opt<std::string> backend;
 
 #include <string>
 
@@ -55,11 +51,6 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
     ExecutionCountAnalyzer execAnalyzer(Ctx, usedFunsAndTypes, entryFunctionName);
     // execAnalyzer.printFrequencies(llvm::outs()); // only for debugging
     Determinizer determinizer(rewriter, Ctx, execAnalyzer);
-  } else if (normalize) {
-    HeapAccessNormalizer normalizer(rewriter, Ctx);
-  } else if (!encode.empty()) {
-    Backend b = (backend == "seahorn") ? Backend::SeaHorn : Backend::TriCera;
-    HeapEncoder encoder(rewriter, Ctx, encode.getValue(), b);
   } else { // Run the default stages
     // then remove all typedefs and remove unused record typedef declarations
     TypedefRemover typedefRemover(rewriter, Ctx, usedFunsAndTypes);
@@ -72,11 +63,8 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
     ForLoopStmtExtractor forLoopStmtExtractor(rewriter, Ctx, usedFunsAndTypes);
     // replace char init expressions with their corresponding integer values
     CharRewriter charRewriter(rewriter, Ctx, usedFunsAndTypes);
-
     // rewrite while loops with nondet (extern) function calls in their guards
     // "while(nondet())" --> "{tmp = nondet(); while(tmp-->0)}"
-    // Note that ExecutionCountAnalyzer should be run in a separate pass to
-    // run correctly.
     NondetLoopGuardRewriter externLoopRewriter(rewriter, Ctx);
 
     // finally add contract annotations to recursive functions

@@ -111,8 +111,8 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
 
         D.headerInputNames.push_back(globalVar);
         D.globalDeclarations += returnTypeStr + " " + globalVar + ";\n";
-        D.mainInitializations += "  " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
-        D.mainInitializations += "  " + globalVar + " = " + localVar + ";\n";
+        //D.mainInitializations += "  " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
+        //D.mainInitializations += "  " + globalVar + " = " + localVar + ";\n";
         D.TheRewriter.ReplaceText(call->getSourceRange(), globalVar);
 
     } else { // freq == ExecutionFrequency::MANY
@@ -130,8 +130,8 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
 
             D.globalDeclarations += "" + returnTypeStr + " " + names.globalArrayName + "[];\n";
             D.globalDeclarations += "int " + names.indexName + " = 0;\n";
-            D.mainInitializations += "  " + returnTypeStr + " " + names.localArrayName + "[] = _; // only supported by TriCera using -mathArrays\n";
-            D.mainInitializations += "  " + names.globalArrayName + " = " + names.localArrayName + ";\n";
+            // D.mainInitializations += "  " + returnTypeStr + " " + names.localArrayName + "[] = _; // only supported by TriCera using -mathArrays\n";
+            // D.mainInitializations += "  " + names.globalArrayName + " = " + names.localArrayName + ";\n";
         } else {
             names = it->second;
         }
