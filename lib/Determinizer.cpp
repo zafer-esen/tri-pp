@@ -131,8 +131,6 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
 
             D.globalDeclarations += "" + returnTypeStr + " " + names.globalArrayName + "[];\n";
             D.globalDeclarations += "int " + names.indexName + " = 0;\n";
-            // D.mainInitializations += "  " + returnTypeStr + " " + names.localArrayName + "[] = _; // only supported by TriCera using -mathArrays\n";
-            // D.mainInitializations += "  " + names.globalArrayName + " = " + names.localArrayName + ";\n";
         } else {
             names = it->second;
         }

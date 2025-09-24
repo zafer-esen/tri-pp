@@ -8,6 +8,12 @@
 
 class DeterminizerVisitor;
 
+struct UnboundedInputInfo {
+    std::string globalArrayName;
+    std::string localArrayName;
+    std::string indexName;
+};
+
 class Determinizer {
 public:
     Determinizer(clang::Rewriter &R, clang::ASTContext &Ctx,
@@ -28,8 +34,7 @@ private:
     std::vector<std::string> headerInputNames;
     std::string globalDeclarations;
     std::string mainInitializations;
-
-    bool dethavocIntFunctionsInjected = false;
+    std::map<std::string, UnboundedInputInfo> typeToArrayInfoMap;
 };
 
 class DeterminizerVisitor : public clang::RecursiveASTVisitor<DeterminizerVisitor> {
