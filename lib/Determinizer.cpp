@@ -79,10 +79,12 @@ bool DeterminizerVisitor::isNondetCall(const clang::CallExpr* call) {
 
     const clang::FunctionDecl* canonicalDecl = callee->getCanonicalDecl();
 
+    // The function must be declared 'extern'.
     if (canonicalDecl->getStorageClass() != clang::SC_Extern) {
         return false;
     }
 
+    // It must not be a system library call.
     if (Context.getSourceManager().isInSystemHeader(canonicalDecl->getLocation())) {
         return false;
     }
@@ -95,6 +97,7 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
         return true;
     }
 
+    // Query the analyzer for the execution frequency of this specific call site.
     ExecutionFrequency freq = D.ExecAnalyzer.getFrequency(call);
 
     const clang::FunctionDecl* callee = call->getDirectCallee();
@@ -109,46 +112,31 @@ bool DeterminizerVisitor::VisitCallExpr(clang::CallExpr *call) {
 
         D.headerInputNames.push_back(globalVar);
         D.globalDeclarations += returnTypeStr + " " + globalVar + ";\n";
-        D.mainInitializations += "  " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
-        D.mainInitializations += "  " + globalVar + " = " + localVar + ";\n";
+        //D.mainInitializations += "  " + returnTypeStr + " " + localVar + " = " + calleeName + "();\n";
+        //D.mainInitializations += "  " + globalVar + " = " + localVar + ";\n";
         D.TheRewriter.ReplaceText(call->getSourceRange(), globalVar);
 
     } else { // freq == ExecutionFrequency::MANY
-        // --- Deterministic Havoc Case ---
-        if (returnTypeStr == "int") {
-            if (!D.dethavocIntFunctionsInjected) {
-                D.dethavocIntFunctionsInjected = true;
-                std::string inputVar = "IN_DETHAVOC_g";
-                D.headerInputNames.push_back(inputVar);
-                D.globalDeclarations += "int " + inputVar + ";\n\n";
+        // --- Array Input Case ---
+        UnboundedInputInfo names;
+        auto it = D.typeToArrayInfoMap.find(returnTypeStr);
+        if (it == D.typeToArrayInfoMap.end()) {
+            std::string baseName = "IN_ARR_" + std::to_string(D.inputCounter++);
+            names.globalArrayName = baseName + "_g";
+            names.localArrayName = baseName;
+            names.indexName = baseName + "_idx_g";
 
-                D.globalDeclarations += "/* Deterministic havoc functions */\n";
-                D.globalDeclarations += "int __dethavoc_int_01() {\n";
-                D.globalDeclarations += "  int result = " + inputVar + " % 2;\n";
-                D.globalDeclarations += "  " + inputVar + " /= 2;\n";
-                D.globalDeclarations += "  return result;\n";
-                D.globalDeclarations += "}\n\n";
+            D.typeToArrayInfoMap[returnTypeStr] = names;
+            D.headerInputNames.push_back(names.globalArrayName);
 
-                D.globalDeclarations += "int __dethavoc_int() {\n";
-                D.globalDeclarations += "  int result = 0;\n";
-                D.globalDeclarations += "  while (__dethavoc_int_01())\n";
-                D.globalDeclarations += "    result = 2 * result + __dethavoc_int_01();\n";
-                D.globalDeclarations += "  return result;\n";
-                D.globalDeclarations += "}\n";
-            }
-            D.TheRewriter.ReplaceText(call->getSourceRange(), "__dethavoc_int()");
+            D.globalDeclarations += "" + returnTypeStr + " " + names.globalArrayName + "[];\n";
+            D.globalDeclarations += "int " + names.indexName + " = 0;\n";
+            // D.mainInitializations += "  " + returnTypeStr + " " + names.localArrayName + "[] = _; // only supported by TriCera using -mathArrays\n";
+            // D.mainInitializations += "  " + names.globalArrayName + " = " + names.localArrayName + ";\n";
         } else {
-            clang::FullSourceLoc fullLoc(call->getBeginLoc(), Context.getSourceManager());
-            llvm::errs() << "ERROR: Deterministic havoc for functions called multiple times is only supported for 'int' return types.\n";
-            llvm::errs() << "Unsupported call to '" << calleeName << "' with return type '" << returnTypeStr << "' found at ";
-            if (fullLoc.isValid()) {
-                llvm::errs() << fullLoc.getSpellingLineNumber() << ":" << fullLoc.getSpellingColumnNumber();
-            } else {
-                llvm::errs() << "(unknown location)";
-            }
-            llvm::errs() << ".\n";
-            exit(1);
+            names = it->second;
         }
+        D.TheRewriter.ReplaceText(call->getSourceRange(), names.globalArrayName + "[" + names.indexName + "++]");
     }
 
     return true;

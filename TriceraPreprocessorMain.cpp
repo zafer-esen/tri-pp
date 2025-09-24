@@ -42,42 +42,6 @@ cl::opt<bool> makeCallsUnique("make-calls-unique",
                      cl::desc("Ensure each function call site for non-recursive functions "
                                      "invokes a unique function declaration/definition."),
                      cl::cat(TPCategory));
-cl::opt<bool> normalize("normalize",
-                     cl::desc("Normalize heap access operations to read/write/alloc calls"),
-                     cl::cat(TPCategory));
-cl::opt<std::string> encode("encode",
-                     cl::desc("Encode heap operations using the specified encoding file"),
-                     cl::value_desc("encoding_file"),
-                     cl::cat(TPCategory));
-cl::opt<std::string> backend("backend",
-                     cl::desc("Specify backend for the heap encoder (tricera or seahorn)"),
-                     cl::value_desc("backend"),
-                     cl::cat(TPCategory), cl::init("tricera"));
-
-namespace {
-  // Helper function to perform final text replacements on the output string.
-  void performFinalReplacements(std::string& code, const std::string& backend) {
-    auto replaceAll = [](std::string& str, const std::string& from, const std::string& to) {
-      if (from.empty()) return;
-      size_t start_pos = 0;
-      while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length();
-      }
-    };
-
-    replaceAll(code, "NULL", "0");
-    if (backend == "seahorn") {
-      // matches the whole word "assert" when it is
-      // followed by optional whitespace and an opening parenthesis.
-      // `\\b` matches "assert" as a whole word".
-      // `(?=\\s*\\()` is a positive lookahead that checks for the pattern without including it in the match that gets replaced.
-      std::regex assert_regex("\\bassert\\b(?=\\s*\\()");
-      code = std::regex_replace(code, assert_regex, "sassert");
-      code = "#include \"seahorn/seasynth.h\"\n" + code;
-    }
-  }
-} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction
@@ -112,7 +76,6 @@ public:
     const RewriteBuffer *Buf = rewriter.getRewriteBufferFor(sm.getMainFileID());
     if (Buf) {
       std::string finalCode(Buf->begin(), Buf->end());
-      performFinalReplacements(finalCode, backend.getValue());
       *outFile << finalCode;
     } else {
       rewriter.getEditBuffer(sm.getMainFileID()).write(*outFile);
