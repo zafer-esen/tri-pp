@@ -157,6 +157,10 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
   }
   else if (enumDeclStmt) {
     // Comment out trailing commas in enum declarations
+    auto *enumType = Ctx->getTagDeclType(enumDeclStmt).getTypePtr();
+    if (!usedFunsAndTypes.typeIsSeen(enumType)) {
+      return; // This enum is unused, do nothing.
+    }
     auto it = enumDeclStmt->enumerators().begin();
     auto itPrev = it;
     while ((it != enumDeclStmt->enumerators().end())) {

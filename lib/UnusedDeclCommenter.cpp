@@ -19,7 +19,7 @@ using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
-UnusedDeclCommenter::UnusedDeclCommenter(clang::Rewriter &r, clang::ASTContext &Ctx, 
+UnusedDeclCommenter::UnusedDeclCommenter(clang::Rewriter &r, clang::ASTContext &Ctx,
                       UsedFunAndTypeCollector &usedFunsAndTypes) {
     UnusedDeclCommenterASTConsumer c(r, usedFunsAndTypes);
     c.HandleTranslationUnit(Ctx);
@@ -29,12 +29,12 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &
                                      UsedFunAndTypeCollector &usedFunsAndTypes)
                            : rewriter(r) {
   handler = std::make_unique<UnusedDeclCommenterMatcher>(rewriter, usedFunsAndTypes);
-  DeclarationMatcher usedDeclMatcher = 
+  DeclarationMatcher usedDeclMatcher =
   anyOf(
     // comment out unused function decls
-    functionDecl(unless(isImplicit())).bind("functionDecl"), 
+    functionDecl(unless(isImplicit())).bind("functionDecl"),
     // comment out unused record decls
-    recordDecl().bind("recordDecl"), 
+    recordDecl().bind("recordDecl"),
     // comment out var decls using records,
     varDecl(
       unless(parmVarDecl()), // unless they are fun args
@@ -46,45 +46,34 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &
     ).bind("varDecl")
     // more?
   );
-    
-  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
                              usedDeclMatcher), handler.get());
 }
 
 void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {
   ASTContext *Ctx = Result.Context;
+  const Decl *declToComment = nullptr;
 
-  const RecordDecl * recordDecl = 
-    Result.Nodes.getNodeAs<clang::RecordDecl>("recordDecl"); 
-
-  const FunctionDecl * functionDecl =
-    Result.Nodes.getNodeAs<clang::FunctionDecl>("functionDecl"); 
-  
-  const VarDecl * varDecl =
-    Result.Nodes.getNodeAs<clang::VarDecl>("varDecl"); 
-
-  if (functionDecl) 
-  { // comment out unused function declarations
-    if (!usedFunsAndTypes.functionIsSeen(functionDecl))
-      doubleSlashCommentOutDeclaration(functionDecl, *Ctx, rewriter);
-  } 
-  else if (recordDecl) 
-  { // comment out unused record declarations
-    if (!usedFunsAndTypes.typeIsSeen(
-        Ctx->getTypeDeclType(recordDecl).getTypePtr()))
-      doubleSlashCommentOutDeclaration(recordDecl, *Ctx, rewriter);
+  if (const auto *fd = Result.Nodes.getNodeAs<clang::FunctionDecl>("functionDecl")) {
+    if (!usedFunsAndTypes.functionIsSeen(fd))
+      declToComment = fd;
   }
-  else if (varDecl) 
-  { // comment out unused var declarations
-    // note that this might comment out some record declarations
-    // several times if the vars are declared as part of the
-    // record declaration: e.g. struct s {...} s1;
-    const QualType * varBaseType =
-      Result.Nodes.getNodeAs<clang::QualType>("varBaseType"); 
+  else if (const auto *rd = Result.Nodes.getNodeAs<clang::RecordDecl>("recordDecl")) {
+    if (!usedFunsAndTypes.typeIsSeen(
+        Ctx->getTypeDeclType(rd).getTypePtr()))
+      declToComment = rd;
+  }
+  else if (const auto *vd = Result.Nodes.getNodeAs<clang::VarDecl>("varDecl")) {
+    const auto *varBaseType = Result.Nodes.getNodeAs<clang::QualType>("varBaseType");
     if (!usedFunsAndTypes.typeIsSeen(varBaseType))
-      doubleSlashCommentOutDeclaration(varDecl, *Ctx, rewriter);
+      declToComment = vd;
   }
   else {
     llvm_unreachable("UnusedDeclCommenter unreachable case\n");
+  }
+
+  if (declToComment && editedLocations.insert(declToComment->getBeginLoc()).second) {
+    doubleSlashCommentOutDeclaration(declToComment, *Ctx, rewriter);
   }
 }
