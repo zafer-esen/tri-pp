@@ -119,8 +119,8 @@ public:
   // returns function info if it Was seen, returns null otherwise
   FunctionInfo* getFunctionInfo (const clang::FunctionDecl* funDecl) const;
 
-  bool functionIsSeen(const clang::FunctionDecl*);
-  bool functionIsRecursive(const clang::FunctionDecl*);
+  bool functionIsSeen(const clang::FunctionDecl*) const;
+  bool functionIsRecursive(const clang::FunctionDecl*) const;
 
   // checks if the passed type is in the list of seen types
   // the passed type must be canonical and should not contain any pointers

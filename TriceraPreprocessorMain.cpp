@@ -2,15 +2,17 @@
 #include "TriceraConfig.hpp"
 
 #include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include <unistd.h>
 #include <fcntl.h>
 
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Error.h"
 #include <string.h>
 #include <iostream>
+#include <signal.h>
+#include <regex>
 
 using namespace llvm;
 using namespace clang;
@@ -33,7 +35,13 @@ cl::opt<bool> quiet ("q", cl::desc("Suppress error and warning messages"),
                      cl::cat(TPCategory));
 cl::opt<bool> dispVer ("v", cl::desc("Display tri-pp version number"),
                      cl::cat(TPCategory));
-
+cl::opt<bool> determinize("determinize",
+                     cl::desc("Make non-deterministic programs deterministic"),
+                     cl::cat(TPCategory));
+cl::opt<bool> makeCallsUnique("make-calls-unique",
+                     cl::desc("Ensure each function call site for non-recursive functions "
+                                     "invokes a unique function declaration/definition."),
+                     cl::cat(TPCategory));
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction
@@ -65,7 +73,13 @@ public:
       }
     }
 
-    rewriter.getEditBuffer(sm.getMainFileID()).write(*outFile);
+    const RewriteBuffer *Buf = rewriter.getRewriteBufferFor(sm.getMainFileID());
+    if (Buf) {
+      std::string finalCode(Buf->begin(), Buf->end());
+      *outFile << finalCode;
+    } else {
+      rewriter.getEditBuffer(sm.getMainFileID()).write(*outFile);
+    }
   }
 
   PreprocessOutput &preprocessOutput;
@@ -91,38 +105,67 @@ newTPFrontendActionFactory(PreprocessOutput &out) {
                                                 new TPFrontendActionFactory(out));
 }
 
+constexpr int EXIT_CODE_SUCCESS = 0;
+constexpr int EXIT_CODE_SOFT_FAIL = 2; // For parsing errors, file errors, etc.
+constexpr int EXIT_CODE_CMD_LINE_ERROR = 3;
+
+/// @brief Immediately terminate the process using an exit code that reflects
+///        the signal number.
+/// @param signal_number The signal that triggered the handler.
+void immediate_exit_handler(int signal_number) {
+  _exit(128 + signal_number);
+}
+
 int main(int argc, const char **argv) {
-  auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
-  if (argc == 1) { // no arguments are passed, show help
-    cl::PrintHelpMessage(false, true);
-    return 0;
-  }
-  clang::tooling::CommonOptionsParser &Parser = *OptionsParser;
-  if (dispVer)
-  {
-    llvm::outs() << "tricera-preprocessor v" TRI_PP_VERSION << "\n";
-    return 0;
-  }
-  clang::tooling::ClangTool tool(Parser.getCompilations(),
-                                 Parser.getSourcePathList());
+  signal(SIGABRT, immediate_exit_handler);
+  signal(SIGSEGV, immediate_exit_handler);
+  signal(SIGILL, immediate_exit_handler);
+  signal(SIGFPE, immediate_exit_handler);
 
-  // suppress stderr output
-  int fd, n;
-  if (quiet) {
-    fd = dup(2);
-    n = open("/dev/null", O_WRONLY);
-    dup2(n, 2);
-    close(n);
+  try {
+    auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
+    if (!OptionsParser) {
+      logAllUnhandledErrors(OptionsParser.takeError(), llvm::errs(), "[tricera-preprocessor] ");
+      _exit(EXIT_CODE_CMD_LINE_ERROR);
+    }
+
+    if (argc == 1) { // no arguments are passed, show help
+      cl::PrintHelpMessage(false, true);
+      return 0;
+    }
+    CommonOptionsParser &Parser = *OptionsParser;
+    if (dispVer)
+    {
+      outs() << "tricera-preprocessor v" TRI_PP_VERSION << "\n";
+      return 0;
+    }
+    ClangTool tool(Parser.getCompilations(),
+                                  Parser.getSourcePathList());
+
+    // suppress stderr output
+    int fd = -1, n = -1;
+    if (quiet) {
+      fd = dup(2);
+      n = open("/dev/null", O_WRONLY);
+      dup2(n, 2);
+      close(n);
+    }
+
+    PreprocessOutput preprocessOutput;
+    int tool_result = tool.run(newTPFrontendActionFactory(preprocessOutput).get());
+
+    if (quiet) {
+      dup2(fd, 2); // restore stderr output
+      close(fd);
+    }
+
+    if (tool_result != 0 || preprocessOutput.hasErrorOccurred) {
+      _exit(EXIT_CODE_SOFT_FAIL);
+    }
+
+  } catch (...) {
+    abort();
   }
 
-  PreprocessOutput preprocessOutput;
-  preprocessOutput.hasErrorOccurred =
-    tool.run(newTPFrontendActionFactory(preprocessOutput).get()) != 0;
-
-  if (quiet) {
-    dup2(fd, 2); // restore stderr output
-    close(fd);
-  }
-
-  return preprocessOutput.hasErrorOccurred;
+  return EXIT_CODE_SUCCESS;
 }
