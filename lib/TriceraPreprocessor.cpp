@@ -16,6 +16,7 @@
 #include "ExecutionCountAnalyzer.hpp"
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
+#include "FuncPtrDevirtualizer.hpp"
 
 using namespace clang;
 using namespace ast_matchers;
@@ -23,7 +24,7 @@ using namespace std;
 extern llvm::cl::opt<bool> determinize;
 extern llvm::cl::opt<bool> makeCallsUnique;
 extern llvm::cl::opt<std::string> entryFunctionName;
-extern llvm::cl::opt<std::string> encode;
+extern llvm::cl::opt<bool> devirtualizeFnPtrs;
 
 #include <string>
 
@@ -44,7 +45,9 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   UsedFunAndTypeCollector usedFunsAndTypes(Ctx, collectAllFuns,
                                            collectAllTypes);
 
-  if (makeCallsUnique) {
+  if (devirtualizeFnPtrs) {
+    FuncPtrDevirtualizer devirtualizer(rewriter, Ctx);
+  } else if (makeCallsUnique) {
     UniqueCallTransformer uniqueCaller(rewriter, Ctx, usedFunsAndTypes);
     uniqueCaller.transform();
   } else if (determinize) {

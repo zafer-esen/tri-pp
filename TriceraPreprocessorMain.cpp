@@ -42,6 +42,12 @@ cl::opt<bool> makeCallsUnique("make-calls-unique",
                      cl::desc("Ensure each function call site for non-recursive functions "
                                      "invokes a unique function declaration/definition."),
                      cl::cat(TPCategory));
+cl::opt<bool> devirtualizeFnPtrs("devirtualize-fn-ptrs",
+                     cl::desc("Replace statically-determinable function pointer calls with direct calls."),
+                     cl::cat(TPCategory));
+cl::opt<bool> debug("debug",
+                     cl::desc("Enable verbose debugging output."),
+                     cl::cat(TPCategory));
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction
