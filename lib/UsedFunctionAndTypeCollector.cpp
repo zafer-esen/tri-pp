@@ -23,12 +23,10 @@ extern cl::opt<std::string> entryFunctionName;
 // any functions in this list will not be marked as used, and in turn will be
 // commented out later by the preprocessor (if UnusedDeclCommenter is used)
 static const std::vector<std::string> ignoredFuns = {
-    //"__assert_fail", "__assert_perror_fail", "__assert", "reach_error",
-    //"__VERIFIER_error", "static_assert", "assert", "assume", "malloc",
-    //"__VERIFIER_assume", "calloc", "realloc", "free", "abort", "exit",
-    //"memset", "memcmp"
-  "abort"
-    };
+    "__assert_fail", "__assert_perror_fail", "__assert", "reach_error", 
+    "__VERIFIER_error", "static_assert", "assert", "assume", "malloc",
+    "__VERIFIER_assume", "calloc", "realloc", "free", "abort", "exit",
+    "memset", "memcmp"};
 
 // todo: add another handler to only collect types
 void handleFunDecl(const clang::FunctionDecl* funDecl,

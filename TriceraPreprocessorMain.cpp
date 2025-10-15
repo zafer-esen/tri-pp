@@ -109,8 +109,8 @@ constexpr int EXIT_CODE_SUCCESS = 0;
 constexpr int EXIT_CODE_SOFT_FAIL = 2; // For parsing errors, file errors, etc.
 constexpr int EXIT_CODE_CMD_LINE_ERROR = 3;
 
-/// @brief Immediately terminates the process using an exit code that reflects
-///        the signal number, preserving shell error-checking conventions.
+/// @brief Immediately terminate the process using an exit code that reflects
+///        the signal number.
 /// @param signal_number The signal that triggered the handler.
 void immediate_exit_handler(int signal_number) {
   _exit(128 + signal_number);

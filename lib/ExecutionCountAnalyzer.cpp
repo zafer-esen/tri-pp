@@ -36,25 +36,18 @@ public:
       return true;
     }
 
-    // Check if the callee has been seen before.
     auto it = Analyzer.FunctionFrequencies.find(CalleeDecl);
     bool wasSeen = (it != Analyzer.FunctionFrequencies.end());
 
-    // Get its old frequency, defaulting to ONCE if it's the first time.
     ExecutionFrequency OldFunFreq = wasSeen ? it->second : ExecutionFrequency::ONCE;
 
-    // Determine the frequency of this specific call site.
     ExecutionFrequency callSiteFrequency = CurrentFrequency;
     if (Analyzer.usedFunsAndTypes.functionIsRecursive(CalleeDecl)) {
         callSiteFrequency = ExecutionFrequency::MANY;
     }
 
-    // Calculate the new combined frequency.
     ExecutionFrequency NewFunFreq = combine(OldFunFreq, callSiteFrequency);
 
-    // Add to worklist if:
-    // 1. The function has never been seen before.
-    // 2. The function's frequency has been upgraded (e.g., from ONCE to MANY).
     if (!wasSeen || NewFunFreq != OldFunFreq) {
       Analyzer.FunctionFrequencies[CalleeDecl] = NewFunFreq;
       Analyzer.Worklist.push_back(CalleeDecl);
@@ -88,7 +81,6 @@ ExecutionCountAnalyzer::ExecutionCountAnalyzer(
     return; // No entry point found.
   }
 
-  // Initialize with the entry point.
   FunctionFrequencies[MainFunc] = ExecutionFrequency::ONCE;
   Worklist.push_back(MainFunc);
   run();
