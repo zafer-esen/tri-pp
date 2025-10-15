@@ -45,14 +45,6 @@ void NondetLoopGuardRewriter::rewriteWhileStmt(WhileStmt *S) {
     SourceManager &sm = context.getSourceManager();
     const LangOptions &langOpts = context.getLangOpts();
 
-    // Get Indentation of the original `while` line
-    SourceLocation stmtBeginLoc = S->getBeginLoc();
-    unsigned startCol = sm.getSpellingColumnNumber(stmtBeginLoc);
-    SourceLocation lineBeginLoc = stmtBeginLoc.getLocWithOffset(-(startCol - 1));
-    StringRef indentStr = Lexer::getSourceText(
-            CharSourceRange::getCharRange(lineBeginLoc, stmtBeginLoc),
-            sm, langOpts);
-
     const auto *callExpr = cast<CallExpr>(S->getCond()->IgnoreParenImpCasts());
     std::string tempVarName = "__loop_idx_" + std::to_string(tempLoopIdxCounter++);
     std::string callText = Lexer::getSourceText(
@@ -61,9 +53,7 @@ void NondetLoopGuardRewriter::rewriteWhileStmt(WhileStmt *S) {
 
     std::string prefix;
     llvm::raw_string_ostream ss(prefix);
-    ss << "{\n";
-    ss << indentStr << "  int " << tempVarName << " = " << callText << ";\n";
-    ss << indentStr << "  ";
+    ss << "{ int " << tempVarName << " = " << callText << "; ";
     rewriter.InsertTextBefore(S->getBeginLoc(), ss.str());
     rewriter.ReplaceText(S->getCond()->getSourceRange(), tempVarName + "-->0");
 
@@ -74,7 +64,6 @@ void NondetLoopGuardRewriter::rewriteWhileStmt(WhileStmt *S) {
         rewriter.InsertTextAfter(endOfBody, "; }");
     }
 
-    std::string suffix = "\n" + indentStr.str() + "}";
     SourceLocation endOfWhileStmt = Lexer::getLocForEndOfToken(S->getEndLoc(), 0, sm, langOpts);
-    rewriter.InsertTextAfter(endOfWhileStmt, suffix);
+    rewriter.InsertTextAfter(endOfWhileStmt, " }");
 }

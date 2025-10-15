@@ -11,23 +11,42 @@
 // maybe switch to C-style /*...*/ comments in that case?
 // another option might be to insert a new line after each declaration,
 // but this would change line numbers
-bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration, 
+bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration,
                                        clang::ASTContext &ctx,
                                        clang::Rewriter& rewriter) {
-  clang::FullSourceLoc B = ctx.getFullLoc(declaration->getBeginLoc());
-  clang::FullSourceLoc E = ctx.getFullLoc(declaration->getEndLoc());
+    clang::SourceManager &SM = ctx.getSourceManager();
 
-  // return if this declaration is not in the main file
-  if (B.getFileID() != rewriter.getSourceMgr().getMainFileID())
-    return false;
-            
-  for (unsigned i = B.getLineNumber(); i <= E.getLineNumber(); ++i){
-    clang::SourceLocation lineStart = rewriter.getSourceMgr().translateLineCol(
-      rewriter.getSourceMgr().getMainFileID(), i, 1);
-    if(lineStart.isInvalid()) return false;
-    rewriter.InsertText(lineStart, "// ");
-  }
-  return true;
+    clang::FullSourceLoc B_full = ctx.getFullLoc(declaration->getBeginLoc());
+    clang::FullSourceLoc E_full = ctx.getFullLoc(declaration->getEndLoc());
+
+    // return if this declaration is not in the main file
+    if (B_full.isInvalid() || B_full.getFileID() != SM.getMainFileID())
+        return false;
+
+    unsigned int startLineNum = B_full.getLineNumber();
+
+    if (startLineNum > 1) {
+        unsigned int prevLineNum = startLineNum - 1;
+
+        clang::SourceLocation prevLineStartLoc = SM.translateLineCol(SM.getMainFileID(), prevLineNum, 1);
+
+        if (prevLineStartLoc.isValid()) {
+            const char* prevLineStartPtr = SM.getCharacterData(prevLineStartLoc);
+            llvm::StringRef restOfFile(prevLineStartPtr);
+            llvm::StringRef prevLineText = restOfFile.substr(0, restOfFile.find_first_of("\r\n"));
+
+            if (prevLineText.trim() == "__extension__") {
+                startLineNum = prevLineNum;
+            }
+        }
+    }
+
+    for (unsigned i = startLineNum; i <= E_full.getLineNumber(); ++i) {
+        clang::SourceLocation lineStart = SM.translateLineCol(SM.getMainFileID(), i, 1);
+        if(lineStart.isInvalid()) continue;
+        rewriter.InsertText(lineStart, "// ");
+    }
+    return true;
 }
 
 void wrapWithCComment (clang::SourceRange sourceRange,
