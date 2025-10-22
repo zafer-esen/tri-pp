@@ -38,7 +38,7 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &
     // comment out unused record decls
     recordDecl().bind("recordDecl"),
     // comment out unused fields that are not implicit (e.g., anonymous unions)
-    fieldDecl(unless(isImplicit())).bind("fieldDecl"),
+    // fieldDecl(unless(isImplicit())).bind("fieldDecl"),// TODO: this is unsafe, we should not comment things out this way, maybe return info instead
     // comment out function pointer VarDecls
     varDecl(
         hasType(pointerType(pointee(functionProtoType()))),
@@ -91,7 +91,7 @@ void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {
     if (!usedFunsAndTypes.typeIsSeen(Ctx->getTypeDeclType(rd).getTypePtr()))
       declToComment = rd;
   }
-  else if (const auto *fd = Result.Nodes.getNodeAs<clang::FieldDecl>("fieldDecl")) {
+ /* else if (const auto *fd = Result.Nodes.getNodeAs<clang::FieldDecl>("fieldDecl")) {
     if (debug) {
       llvm::dbgs() << "[Commenter] Matched as 'fieldDecl': "
                    << fd->getParent()->getNameAsString() << "::" << fd->getNameAsString() << " at ";
@@ -103,7 +103,7 @@ void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {
     if (!usedFunsAndTypes.fieldIsSeen(fd)) {
       declToComment = fd;
     }
-  }
+  }*/
   else if (const auto *vd = Result.Nodes.getNodeAs<clang::VarDecl>("functionPointerVarDecl")) {
     if (debug) {
       llvm::dbgs() << "[Commenter] Matched as 'functionPointerVarDecl': " << vd->getNameAsString() << " at ";

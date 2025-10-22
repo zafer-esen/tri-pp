@@ -24,7 +24,7 @@ extern cl::opt<bool> debug;
 // any functions in this list will not be marked as used, and in turn will be
 // commented out later by the preprocessor (if UnusedDeclCommenter is used)
 static const std::vector<std::string> ignoredFuns = {
-    "__assert_fail", "__assert_perror_fail", "__assert", "reach_error", 
+    "__assert_fail", "__assert_perror_fail", "__assert", "reach_error",
     "__VERIFIER_error", "static_assert", "assert", "assume", "malloc",
     "__VERIFIER_assume", "calloc", "realloc", "free", "abort", "exit",
     "memset", "memcmp"};
@@ -98,32 +98,6 @@ private:
   }
 };
 
-class FindDesignatedInitMatcher : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  explicit FindDesignatedInitMatcher(llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls)
-      : seenFieldDecls(seenFieldDecls) {}
-
-  void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override {
-    if (const auto *initExpr = Result.Nodes.getNodeAs<clang::DesignatedInitExpr>("designatedInit")) {
-      // A designated initializer uses a field, mark it as seen.
-      for (const auto &designator : initExpr->designators()) {
-        if (const auto *fieldDecl = designator.getField()) {
-          if (debug) {
-            llvm::dbgs() << "[Collector] Found DESIGNATED INITIALIZER access to field '"
-                         << fieldDecl->getParent()->getNameAsString() << "::"
-                         << fieldDecl->getNameAsString() << "' at ";
-            initExpr->getBeginLoc().print(llvm::dbgs(), *Result.SourceManager);
-            llvm::dbgs() << ". Adding to seen set.\n";
-          }
-          seenFieldDecls.insert(fieldDecl->getCanonicalDecl());
-        }
-      }
-    }
-  }
-private:
-  llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls;
-};
-
 class FindFunPtrRefMatcher : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
   explicit FindFunPtrRefMatcher(llvm::SetVector<const clang::VarDecl*> &seenFunPtrDecls)
@@ -144,38 +118,6 @@ public:
   }
 private:
   llvm::SetVector<const clang::VarDecl*> &seenFunPtrDecls;
-};
-
-class FindPositionalInitMatcher : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  explicit FindPositionalInitMatcher(llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls)
-      : seenFieldDecls(seenFieldDecls) {}
-
-  void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override {
-    if (const auto *initList = Result.Nodes.getNodeAs<clang::InitListExpr>("initList")) {
-      const auto *recordType = initList->getType()->getAs<RecordType>();
-      if (!recordType) return;
-
-      const RecordDecl *recordDecl = recordType->getDecl();
-      int i = 0;
-      for (const auto *field : recordDecl->fields()) {
-        // initializer, field is used.
-        if (i < initList->getNumInits()) {
-          if (debug) {
-            llvm::dbgs() << "[Collector] Found POSITIONAL INITIALIZER access to field '"
-                         << field->getParent()->getNameAsString() << "::"
-                         << field->getNameAsString() << "'. Adding to seen set.";
-          }
-          seenFieldDecls.insert(field->getCanonicalDecl());
-          i++;
-        } else {
-          break; // no more initializers
-        }
-      }
-    }
-  }
-private:
-  llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls;
 };
 
 class FindFieldAccessMatcher : public clang::ast_matchers::MatchFinder::MatchCallback {
@@ -213,6 +155,77 @@ private:
   llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls;
 };
 
+class FieldUsageVisitor : public RecursiveASTVisitor<FieldUsageVisitor> {
+public:
+  explicit FieldUsageVisitor(llvm::SetVector<const FieldDecl*> &seenFieldDecls)
+      : seenFieldDecls(seenFieldDecls) {}
+
+  bool VisitMemberExpr(MemberExpr *E) {
+    if (auto *FD = dyn_cast<FieldDecl>(E->getMemberDecl())) {
+      markFieldAndAllSubFieldsAsUsed(FD, seenFieldDecls);
+    }
+    return true;
+  }
+
+  bool VisitDesignatedInitExpr(DesignatedInitExpr *E) {
+    for (const auto &designator : E->designators()) {
+      if (const auto *fieldDecl = designator.getField()) {
+        markFieldAndAllSubFieldsAsUsed(fieldDecl, seenFieldDecls);
+      }
+    }
+    return true;
+  }
+
+  bool VisitVarDecl(VarDecl *VD) {
+    if (VD->hasInit()) {
+      if (const auto *ILE = dyn_cast<InitListExpr>(VD->getInit())) {
+        if (const auto *RD = VD->getType()->getAsRecordDecl()) {
+          if (debug) {
+            llvm::dbgs() << "\n[Collector] Analyzing positional initializer for variable '" << VD->getName() << "' of type '" << RD->getName() << "'\n";
+          }
+          unsigned initIdx = 0;
+          for (const FieldDecl *Field : RD->fields()) {
+            if (initIdx >= ILE->getNumInits()) {
+              break;
+            }
+            const Expr *Init = ILE->getInit(initIdx);
+            if (!isa<ImplicitValueInitExpr>(Init)) {
+              markFieldAndAllSubFieldsAsUsed(Field, seenFieldDecls);
+            }
+            initIdx++;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+private:
+  void markFieldAndAllSubFieldsAsUsed(const FieldDecl *Field, llvm::SetVector<const FieldDecl*> &seenDecls) {
+    if (!Field) return;
+
+    bool isNew = seenDecls.insert(Field->getCanonicalDecl());
+    if (!isNew) {
+      return;
+    }
+
+    if (debug) {
+      llvm::dbgs() << "  -> Marking field '" << Field->getNameAsString() << "' as used.\n";
+    }
+
+    if (const auto *SubRecord = Field->getType()->getAsRecordDecl()) {
+      if (debug) {
+        llvm::dbgs() << "    -> Field is a struct/union, marking all sub-fields recursively.\n";
+      }
+      for (const FieldDecl *SubField : SubRecord->fields()) {
+        markFieldAndAllSubFieldsAsUsed(SubField, seenDecls);
+      }
+    }
+  }
+
+  llvm::SetVector<const FieldDecl*> &seenFieldDecls;
+};
+
 // todo: add another handler to only collect types
 void handleFunDecl(const clang::FunctionDecl* funDecl,
                    clang::ast_matchers::MatchFinder::MatchCallback* handler,
@@ -223,7 +236,7 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
   //if (std::find(ignoredFuns.begin(), ignoredFuns.end(), funName) != 
   //  ignoredFuns.end())
   //  return;
-  
+
   StatementMatcher CallSiteOrDeclRefMatcher = anyOf(
   callExpr(
     hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
@@ -237,9 +250,9 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
       hasType(recordType().bind("recordTyp")),
       anything()))
   ).bind("referenceExpr"));
-  
+
   TypeLocMatcher usedTypesMatcher = typeLoc(
-    loc(qualType().bind("usedType")), 
+    loc(qualType().bind("usedType")),
     hasAncestor(expr()), // this ensures that the type is used in an expr.
     hasAncestor(functionDecl(hasName(funDecl->getName())))).bind("usedTypeLoc");
 
@@ -253,13 +266,8 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
     FunctionReferenceVisitor refVisitor(matcher->getSeenFunctions(), handler, matcher->getSeenFieldDecls(), Ctx);
     refVisitor.TraverseStmt(funDecl->getBody());
 
-    FindFieldAccessMatcher fieldHandler(seenFieldDecls);
-    clang::ast_matchers::MatchFinder fieldFinder;
-    fieldFinder.addMatcher(
-        clang::ast_matchers::memberExpr().bind("memberAccess"),
-        &fieldHandler
-    );
-    fieldFinder.match(*funDecl->getBody(), *Ctx);
+    FieldUsageVisitor fieldVisitor(seenFieldDecls);
+    fieldVisitor.TraverseStmt(funDecl->getBody());
   }
 }
 
@@ -293,10 +301,10 @@ void FindEntryFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
   clang::ASTContext *Ctx = Result.Context;
 
   const auto * entryFunction =
-    Result.Nodes.getNodeAs<clang::FunctionDecl>("main"); 
-  
+    Result.Nodes.getNodeAs<clang::FunctionDecl>("main");
+
   const auto * allFunDecl =
-    Result.Nodes.getNodeAs<clang::FunctionDecl>("allFunDecl"); 
+    Result.Nodes.getNodeAs<clang::FunctionDecl>("allFunDecl");
 
   if (entryFunction) {
     //llvm::outs() << "main found...\n";
@@ -323,12 +331,12 @@ void FindFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
   const auto * EnclosingDecl =
       Result.Nodes.getNodeAs<clang::FunctionDecl>("enclosing");
   const auto * TheCall = Result.Nodes.getNodeAs<clang::CallExpr>("caller");
-  
+
   //llvm::outs() << CalleeDecl->getNameAsString() << " called from " << 
   //  EnclosingDecl->getNameAsString() << "\n";
 
   const auto * usedTypeLoc = Result.Nodes.getNodeAs<clang::TypeLoc>("usedTypeLoc");
-  
+
   const auto * TheRef = Result.Nodes.getNodeAs<clang::DeclRefExpr>("referenceExpr");
   if(TheRef) { // matched a DeclRefExpr                              
     //llvm::outs() << "matched a ref\n";
@@ -342,14 +350,14 @@ void FindFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
     //}
   } else if (CalleeDecl) { // matched a CallExpr
     //llvm::outs() << EnclosingDecl->getNameAsString() << "\n";
-   
+
     assert(declaresSameEntity(TheCall->getDirectCallee(), CalleeDecl));
 
     // todo: maybe detect mutually recursive funs, or recursion after several steps
     bool functionIsRecursive = declaresSameEntity(CalleeDecl, EnclosingDecl);
-    
+
     bool functionSeenBefore = false;
-    if (std::find(ignoredFuns.begin(), ignoredFuns.end(), 
+    if (std::find(ignoredFuns.begin(), ignoredFuns.end(),
         CalleeDecl->getNameAsString()) != ignoredFuns.end())
       functionSeenBefore = true;
     else
@@ -366,7 +374,7 @@ void FindFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
 
     if (!functionSeenBefore) {
       //llvm::outs() << "seeing " << CalleeDecl->getNameAsString() << " for the first time!\n";
-      
+
       // try to find a declaration with a body, if one exists
       const FunctionDecl * calleeWithBody = CalleeDecl;
       for (auto decl : CalleeDecl->redecls()) {
@@ -432,64 +440,37 @@ bool TypeCollectorVisitor::VisitType(clang::Type *typ) {
 }
 
 UsedFunAndTypeCollector::UsedFunAndTypeCollector(clang::ASTContext &Ctx, bool collectAllFuns, bool collectAllTypes)
-  : collectAllTypes(collectAllTypes) {
+    : collectAllTypes(collectAllTypes) {
   UsedFunAndTypeASTConsumer c(seenFunctions, seenTypes, seenFieldDecls, collectAllFuns);
   c.HandleTranslationUnit(Ctx);
 
-  clang::ast_matchers::MatchFinder funPtrFinder;
   FindFunPtrRefMatcher funPtrHandler(seenFunPtrDecls);
-
-  FindDesignatedInitMatcher designatedInitHandler(seenFieldDecls);
-  MatchFinder designatedInitFinder;
-  designatedInitFinder.addMatcher(
-      designatedInitExpr().bind("designatedInit"),
-      &designatedInitHandler
-  );
-  designatedInitFinder.matchAST(Ctx);
-
-  FindPositionalInitMatcher positionalInitHandler(seenFieldDecls);
-  MatchFinder positionalInitFinder;
-  // This matcher is tricky: we want init lists for records,
-  // but only if they don't have designated initializers (which we already handle).
-  positionalInitFinder.addMatcher(
-      initListExpr(
-          hasType(recordType()),
-          unless(has(designatedInitExpr()))
-      ).bind("initList"),
-      &positionalInitHandler
-  );
-  positionalInitFinder.matchAST(Ctx);
-
-// Match any expression that refers to a VarDecl of a function pointer type.
-  auto funPtrVarMatcher = clang::ast_matchers::varDecl(
-      clang::ast_matchers::hasType(
-          clang::ast_matchers::pointerType(
-              clang::ast_matchers::pointee(
-                  clang::ast_matchers::functionProtoType()
-              )
-          )
-      )
-  ).bind("funPtrVar");
-
-  funPtrFinder.addMatcher(
-        clang::ast_matchers::declRefExpr(clang::ast_matchers::to(funPtrVarMatcher)).bind("declRefExpr"),
-        &funPtrHandler
-    );
-
+  MatchFinder funPtrFinder;
+  auto funPtrVarMatcher = varDecl(hasType(pointerType(pointee(functionProtoType())))).bind("funPtrVar");
+  funPtrFinder.addMatcher(declRefExpr(to(funPtrVarMatcher)).bind("declRefExpr"), &funPtrHandler);
   funPtrFinder.matchAST(Ctx);
 
   if (debug) {
     llvm::dbgs() << "[Collector] Starting scan of global variable initializers...\n";
   }
 
+  FieldUsageVisitor fieldVisitor(seenFieldDecls);
+
   auto Decls = Ctx.getTranslationUnitDecl()->decls();
   for (auto *Decl : Decls) {
     if (const auto *VD = dyn_cast<VarDecl>(Decl)) {
       if (VD->hasInit()) {
+        const Expr *initializer = VD->getInit();
+
+        // Find all field usages (access, designated init, positional init)
+        // within this global initializer.
+        fieldVisitor.TraverseStmt(const_cast<Expr*>(initializer));
+
+        // Find all function pointers used in this global initializer.
         FunctionReferenceVisitor refVisitor(seenFunctions,
                                             &c.getHandler()->getSubHandler(),
                                             seenFieldDecls, &Ctx);
-        refVisitor.TraverseStmt(const_cast<Expr *>(VD->getInit()));
+        refVisitor.TraverseStmt(const_cast<Expr *>(initializer));
       }
     }
   }
@@ -521,7 +502,7 @@ bool UsedFunAndTypeCollector::functionIsRecursive(
   const FunctionInfo* funInfo = getFunctionInfo(funDecl);
   if (funInfo)
     return funInfo->isRecursive();
-  else 
+  else
     llvm_unreachable("Tried to check if unseen function is recursive!");
 }
 
