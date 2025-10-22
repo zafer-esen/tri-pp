@@ -47,6 +47,7 @@ set(tri-pp_SOURCES
   lib/NondetLoopGuardRewriter.cpp
   lib/UniqueCallSiteTransformer.cpp
   lib/FuncPtrDevirtualizer.cpp
+  lib/DesignatedInitializerEliminator.cpp
 )
 
 # CONFIGURATION

@@ -17,6 +17,7 @@
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
 #include "FuncPtrDevirtualizer.hpp"
+#include "DesignatedInitializerEliminator.hpp"
 
 using namespace clang;
 using namespace ast_matchers;
@@ -55,6 +56,8 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
     // execAnalyzer.printFrequencies(llvm::outs()); // only for debugging
     Determinizer determinizer(rewriter, Ctx, execAnalyzer);
   } else { // Run the default stages
+    // normalize designated initializers to positional ones
+    DesignatedInitializerEliminator designatedInitEliminator(rewriter, Ctx);
     // then remove all typedefs and remove unused record typedef declarations
     TypedefRemover typedefRemover(rewriter, Ctx, usedFunsAndTypes);
     // then comment out all unused declarations
