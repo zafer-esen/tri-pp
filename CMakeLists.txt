@@ -40,7 +40,7 @@ set(tri-pp_SOURCES
   lib/UnusedDeclCommenter.cpp
   lib/TypeCanoniser.cpp
   lib/ForLoopStmtExtractor.cpp
-  lib/CharRewriter.cpp
+  lib/CharAndStringLiteralRewriter.cpp
   lib/Utilites.cpp
   lib/Determinizer.cpp
   lib/ExecutionCountAnalyzer.cpp
@@ -56,7 +56,6 @@ foreach( tool ${TRICERA_TOOLS} )
     add_executable(
       ${tool}
       ${${tool}_SOURCES}
-            include/Determinizer.hpp
     )
 
 #    add_library(${tool} SHARED

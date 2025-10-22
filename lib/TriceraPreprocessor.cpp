@@ -11,7 +11,7 @@
 #include "UnusedDeclCommenter.hpp"
 #include "TypeCanoniser.hpp"
 #include "ForLoopStmtExtractor.hpp"
-#include "CharRewriter.hpp"
+#include "CharAndStringLiteralRewriter.hpp"
 #include "Determinizer.hpp"
 #include "ExecutionCountAnalyzer.hpp"
 #include "NondetLoopGuardRewriter.hpp"
@@ -65,7 +65,7 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
     // extract declStmts from inside for loop declarations
     ForLoopStmtExtractor forLoopStmtExtractor(rewriter, Ctx, usedFunsAndTypes);
     // replace char init expressions with their corresponding integer values
-    CharRewriter charRewriter(rewriter, Ctx, usedFunsAndTypes);
+    CharAndStringLiteralRewriter literalRewriter(rewriter, Ctx, usedFunsAndTypes);
     // rewrite while loops with nondet (extern) function calls in their guards
     // "while(nondet())" --> "{tmp = nondet(); while(tmp-->0)}"
     NondetLoopGuardRewriter externLoopRewriter(rewriter, Ctx);

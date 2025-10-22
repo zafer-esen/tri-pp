@@ -5,7 +5,6 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "llvm/Support/raw_ostream.h"
 #include "clang/Lex/Lexer.h"
-#include "clang/AST/PrettyPrinter.h"
 
 // todo: does not take into account possible declarations in the same line
 // maybe switch to C-style /*...*/ comments in that case?

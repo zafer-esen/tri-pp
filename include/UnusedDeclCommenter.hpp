@@ -31,7 +31,6 @@ public:
   // or
   //llvm::SmallSet<const clang::Decl*, 32> commentedLines;
   UsedFunAndTypeCollector &usedFunsAndTypes;
-  std::set<clang::SourceLocation> editedLocations;
 };
 
 class UnusedDeclCommenterASTConsumer : public clang::ASTConsumer {

@@ -20,47 +20,60 @@ class FunctionInfo {
     const clang::FunctionDecl* getDecl() const { return _f; }
 };
 
-class FindFunctionMatcher : 
+class FindFunctionMatcher :
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  FindFunctionMatcher(llvm::SetVector<FunctionInfo*> &seenFunctions,
-                      llvm::SetVector<const clang::Type*> &seenTypes,
-                      bool collectAllFuns)  :
-                      seenFunctions(seenFunctions), seenTypes(seenTypes),
-                      collectAllFuns(collectAllFuns){}
+  FindFunctionMatcher(llvm::SetVector<FunctionInfo *> &seenFunctions,
+                      llvm::SetVector<const clang::Type *> &seenTypes,
+                      llvm::SetVector<const clang::FieldDecl *> &seenFieldDecls,
+                      bool collectAllFuns)
+      : seenFunctions(seenFunctions), seenTypes(seenTypes),
+        seenFieldDecls(seenFieldDecls), collectAllFuns(collectAllFuns) {}
   // this callback executes on a match
   void run(const clang::ast_matchers::MatchFinder::MatchResult &) override;
-  
+
   // this callback executes at the end of the translation unit
   void onEndOfTranslationUnit() override{};
+
+  llvm::SetVector<FunctionInfo*> &getSeenFunctions() {
+    return seenFunctions;
+  }
+
+  llvm::SetVector<const clang::FieldDecl *> &getSeenFieldDecls() {
+    return seenFieldDecls;
+  }
 
 private:
   llvm::SetVector<FunctionInfo*> &seenFunctions;
   llvm::SetVector<const clang::Type*> &seenTypes;
+  llvm::SetVector<const clang::FieldDecl*> &seenFieldDecls;
   bool collectAllFuns;
 };
 
 // todo: this handler is a bit unnecessary, could be done in a simpler way
 // since its only job is to find the main and call subHandler
-class FindEntryFunctionMatcher : 
+class FindEntryFunctionMatcher :
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  FindEntryFunctionMatcher(llvm::SetVector<FunctionInfo*> &seenFunctions,
-                           llvm::SetVector<const clang::Type*> &seenTypes,
-                           bool collectAllFuns) 
-                           : subHandler(seenFunctions, seenTypes, 
-                                        collectAllFuns),
-                           seenFunctions(seenFunctions), seenTypes(seenTypes),
-                           collectAllFuns(collectAllFuns){}
+  FindEntryFunctionMatcher(llvm::SetVector<FunctionInfo *> &seenFunctions,
+                           llvm::SetVector<const clang::Type *> &seenTypes,
+                           llvm::SetVector<const clang::FieldDecl *> &seenFieldDecls,
+                           bool collectAllFuns)
+      : subHandler(seenFunctions, seenTypes, seenFieldDecls, collectAllFuns),
+        seenFunctions(seenFunctions), seenTypes(seenTypes),
+        seenFieldDecls(seenFieldDecls), collectAllFuns(collectAllFuns) {}
   // this callback executes on a match
   void run(const clang::ast_matchers::MatchFinder::MatchResult &) override;
-  
+
+  FindFunctionMatcher &getSubHandler() { return subHandler; }
+
   // this callback executes at the end of the translation unit
   void onEndOfTranslationUnit() override{};
   private:
     FindFunctionMatcher subHandler;
     llvm::SetVector<FunctionInfo*> &seenFunctions;
     llvm::SetVector<const clang::Type*> &seenTypes;
+    llvm::SetVector<const clang::FieldDecl *> &seenFieldDecls;
     bool collectAllFuns;
 };
 
@@ -68,13 +81,12 @@ public:
 // E.g. when a record is encountered, it will mark this record as seen, and
 // recursively visit its fields and mark them as seen as well
 class TypeCollectorVisitor
-: public clang::RecursiveASTVisitor<TypeCollectorVisitor> {
+    : public clang::RecursiveASTVisitor<TypeCollectorVisitor> {
 public:
-  explicit TypeCollectorVisitor(clang::ASTContext &Ctx,
-                                llvm::SetVector<FunctionInfo*> &seenFunctions,
-                                llvm::SetVector<const clang::Type*> &seenTypes)
-                                : Ctx(Ctx), seenFunctions(seenFunctions), 
-                                  seenTypes(seenTypes) {}
+  explicit TypeCollectorVisitor(
+      clang::ASTContext &Ctx, llvm::SetVector<FunctionInfo *> &seenFunctions,
+      llvm::SetVector<const clang::Type *> &seenTypes)
+      : Ctx(Ctx), seenFunctions(seenFunctions), seenTypes(seenTypes) {}
   bool VisitType(clang::Type *typ);
   // more concrete matchers can be added here if required
   // bool VisitRecordType(clang::RecordType *typ);
@@ -87,33 +99,31 @@ private:
 
 class UsedFunAndTypeASTConsumer : public clang::ASTConsumer {
 public:
-  UsedFunAndTypeASTConsumer(llvm::SetVector<FunctionInfo*> &seenFunctions,
-                            llvm::SetVector<const clang::Type*> &seenTypes,
-                            bool collectAllFuns);
+  UsedFunAndTypeASTConsumer(
+      llvm::SetVector<FunctionInfo *> &seenFunctions,
+      llvm::SetVector<const clang::Type *> &seenTypes,
+      llvm::SetVector<const clang::FieldDecl *> &seenFieldDecls,
+      bool collectAllFuns);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override {
     finder.matchAST(Ctx);
   }
+  FindEntryFunctionMatcher *getHandler() { return &handler; }
 private:
   clang::ast_matchers::MatchFinder finder;
   FindEntryFunctionMatcher handler;
   llvm::SetVector<FunctionInfo*> &seenFunctions;
   llvm::SetVector<const clang::Type*> &seenTypes;
+  llvm::SetVector<const clang::FieldDecl *> &seenFieldDecls;
   bool collectAllFuns;
 };
 
 // collects all seen functions and types on construction
 class UsedFunAndTypeCollector {
 public:
-  UsedFunAndTypeCollector(clang::ASTContext &Ctx,
+  explicit UsedFunAndTypeCollector(clang::ASTContext &Ctx,
                           bool collectAllFuns = false, // force collect funs
-                          bool collectAllTypes = false) // force collect types
+                          bool collectAllTypes = false); // force collect types
                           // todo: collectAllTypes actually only sets types as seen
-  : collectAllTypes(collectAllTypes)
-  {
-    UsedFunAndTypeASTConsumer c(seenFunctions, seenTypes, 
-                                collectAllFuns);
-    c.HandleTranslationUnit(Ctx);
-  }
   ~UsedFunAndTypeCollector();
 
   // returns function info if it Was seen, returns null otherwise
@@ -124,14 +134,18 @@ public:
 
   // checks if the passed type is in the list of seen types
   // the passed type must be canonical and should not contain any pointers
-  bool typeIsSeen(const clang::Type*);
-  bool typeIsSeen(const clang::QualType* t);
+  bool typeIsSeen(const clang::Type*) const;
+  bool typeIsSeen(const clang::QualType* t) const;
+  bool functionPointerIsSeen(const clang::VarDecl* vd) const;
+  bool fieldIsSeen(const clang::FieldDecl* fd) const;
 
   llvm::SetVector<FunctionInfo*> getSeenFunctions() const {return seenFunctions;}
   llvm::SetVector<const clang::Type*> getSeenTypes() const {return seenTypes;}
 
 private:
+  llvm::SetVector<const clang::VarDecl*> seenFunPtrDecls;
+  llvm::SetVector<const clang::FieldDecl*> seenFieldDecls;
   llvm::SetVector<FunctionInfo*> seenFunctions;
   llvm::SetVector<const clang::Type*> seenTypes;
-  bool collectAllTypes;
+  bool collectAllTypes{};
 };
