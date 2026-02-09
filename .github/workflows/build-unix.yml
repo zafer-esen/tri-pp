@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-22.04]  # macos-14 macOS ARM64 build disabled - no llvm@13 in Homebrew
 
     steps:
     - uses: actions/checkout@v6
