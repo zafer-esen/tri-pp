@@ -22,6 +22,7 @@ using namespace ast_matchers;
 using namespace std;
 extern llvm::cl::opt<bool> determinize;
 extern llvm::cl::opt<bool> makeCallsUnique;
+extern llvm::cl::opt<bool> noDeclSlice;
 extern llvm::cl::opt<std::string> entryFunctionName;
 extern llvm::cl::opt<std::string> encode;
 
@@ -35,8 +36,8 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   // todo: process files where an error has occurred?
   // errors also occur on some inputs which TriCera would accept
   bool hadError = Ctx.getDiagnostics().hasErrorOccurred();
-  bool collectAllFuns = hadError;
-  bool collectAllTypes = hadError;
+  bool collectAllFuns = hadError || noDeclSlice;
+  bool collectAllTypes = hadError || noDeclSlice;
   // todo: or return without doing anything?
   // if (Ctx.getDiagnostics().hasErrorOccurred()) return;
 
@@ -55,7 +56,7 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
     // then remove all typedefs and remove unused record typedef declarations
     TypedefRemover typedefRemover(rewriter, Ctx, usedFunsAndTypes);
     // then comment out all unused declarations
-    if (!hadError)
+    if (!hadError && !noDeclSlice)
       UnusedDeclCommenter declCommenter(rewriter, Ctx, usedFunsAndTypes);
     // and canonise all used types
     TypeCanoniser typeCanoniser(rewriter, Ctx, usedFunsAndTypes);

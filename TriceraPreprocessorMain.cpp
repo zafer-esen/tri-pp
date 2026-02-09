@@ -42,6 +42,9 @@ cl::opt<bool> makeCallsUnique("make-calls-unique",
                      cl::desc("Ensure each function call site for non-recursive functions "
                                      "invokes a unique function declaration/definition."),
                      cl::cat(TPCategory));
+cl::opt<bool> noDeclSlice("no-decl-slice",
+                     cl::desc("Disable slicing: keep all declarations (don't comment out unused code)"),
+                     cl::cat(TPCategory));
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction

@@ -10,8 +10,8 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
-
 #include "llvm/Support/raw_ostream.h"
+#include "clang/AST/DeclCXX.h"
 
 
 using namespace clang;
@@ -42,15 +42,20 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
   callExpr(
     hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
     callee(functionDecl().bind("callee"))).bind("caller"),
-  declRefExpr(allOf(hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
-    unless(anyOf(hasType(functionProtoType()),
-      hasType(functionType()),
-      hasType(builtinType()))),
-    anyOf(hasType(typedefType().bind("typedefTyp")),
-      hasType(arrayType().bind("arrayTyp")),
-      hasType(recordType().bind("recordTyp")),
-      anything()))
-  ).bind("referenceExpr"));
+    declRefExpr(allOf(hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
+    anyOf(
+       allOf(
+         unless(anyOf(hasType(functionProtoType()),
+           hasType(functionType()),
+           hasType(builtinType()))),
+         anyOf(hasType(typedefType().bind("typedefTyp")),
+           hasType(arrayType().bind("arrayTyp")),
+           hasType(recordType().bind("recordTyp")),
+           anything())
+       ),
+       to(enumConstantDecl())
+    )
+  )).bind("referenceExpr"));
   
   TypeLocMatcher usedTypesMatcher = typeLoc(
     loc(qualType().bind("usedType")), 
@@ -137,6 +142,14 @@ void FindFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
       TypeCollectorVisitor typeVisitor(*Ctx, seenFunctions, seenTypes);
       typeVisitor.TraverseType(typ);
     //}
+
+    if (const EnumConstantDecl *ECD = dyn_cast<EnumConstantDecl>(TheRef->getDecl())) {
+      if (const EnumDecl *ED = dyn_cast<EnumDecl>(ECD->getDeclContext())) {
+        QualType qt = Ctx->getEnumType(ED);
+        const clang::Type *ty = qt.getTypePtr();
+        seenTypes.insert(ty);
+      }
+    }
   } else if (CalleeDecl) { // matched a CallExpr
     //llvm::outs() << EnclosingDecl->getNameAsString() << "\n";
    
