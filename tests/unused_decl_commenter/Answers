@@ -1,0 +1,182 @@
+
+enum_array_size.c
+/* typedef  */ enum MyEnum {
+    FIRST,
+    SECOND,
+    MyEnum_COUNT
+}/*  MyEnum */ ;
+
+int array[MyEnum_COUNT];
+
+void main(void) {
+    if (array[FIRST] == 0) {}
+}
+
+enum_in_expr.c
+/* typedef  */ enum E { A, B }/*  E */ ;
+void main() { int x = A + 1; }
+
+assert_macro.c
+/* typedef  */ enum E { ONE }/*  E */ ;
+#define assert(x) if(!(x)) {}
+void main() { assert(ONE); }
+
+no_decl_slice.c
+struct Unused { int x; };
+void main() {}
+
+unused_struct.c
+// struct Unused {
+//     int x;
+// };
+
+void main() {
+}
+
+used_struct.c
+struct Used {
+    int x;
+};
+
+void main() {
+    struct Used u;
+    u.x = 1;
+}
+
+unused_func.c
+// void unused() {
+// }
+
+void main() {
+}
+
+used_func.c
+void used() {
+}
+
+void main() {
+    used();
+}
+
+unused_enum.c
+// enum Unused {
+//     A, B
+// };
+
+void main() {
+}
+
+recursive.c
+/*@ contract @*/ void recurse(int x) {
+    if (x > 0) recurse(x-1);
+}
+
+void main() {
+    recurse(10);
+}
+
+global_var_used.c
+struct S { int x; };
+struct S global_var;
+
+void main() {
+    global_var.x = 1;
+}
+
+func_decl_impl_split.c
+void f();
+
+void main() {
+    f();
+}
+
+void f() {
+}
+
+func_decl_unused.c
+// void f();
+void main() {}
+
+struct_forward_decl.c
+struct S;
+void f(struct S* p) {}
+void main() { f(0); }
+
+enum_forward_decl.c
+enum E { A };
+void f(enum E e) {}
+void main() { f(A); }
+
+typedef_struct_usage.c
+/* typedef  */ struct T { int x; }/*  T */ ;
+void f(struct T t) {}
+void main() { struct T t; f(t); }
+
+typedef_struct_unused.c
+// // typedef struct { int x; } T;
+void main() { int x = 1; }
+
+array_of_structs.c
+struct S { int x; };
+struct S arr[10];
+void main() { arr[0].x = 1; }
+
+array_of_structs_unused.c
+// struct S { int x; };
+int arr[10];
+void main() { arr[0] = 1; }
+
+pointer_to_struct.c
+struct S { int x; };
+void f(struct S* p) { p->x = 1; }
+void main() { struct S s; f(&s); }
+
+pointer_to_struct_unused.c
+// struct S { int x; };
+void f(int* p) { *p = 1; }
+void main() { int s; f(&s); }
+
+struct_in_struct.c
+struct A { int x; };
+struct B { struct A a; };
+void main() { struct B b; b.a.x = 1; }
+
+struct_in_struct_unused.c
+// struct A { int x; };
+struct B { int y; };
+void main() { struct B b; b.y = 1; }
+
+enum_in_struct.c
+enum E { A };
+struct S { enum E e; };
+void main() { struct S s; s.e = A; }
+
+enum_in_struct_unused.c
+// enum E { A };
+struct S { int e; };
+void main() { struct S s; s.e = 1; }
+
+return_struct.c
+struct S { int a; };
+struct S f() { struct S s; return s; }
+void main() { f(); }
+
+return_struct_unused.c
+// struct S { int a; };
+int f() { return 0; }
+void main() { f(); }
+
+param_struct.c
+struct S { int a; };
+void f(struct S s) {}
+void main() { struct S s; f(s); }
+
+param_struct_unused.c
+// struct S { int a; };
+void f(int s) {}
+void main() { f(1); }
+
+func_decl_impl_unused.c
+// void f();
+void main() {}
+// void f() {}

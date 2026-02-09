@@ -1,0 +1,15 @@
+#!/bin/sh
+
+TESTS="determinize.c \
+       make_calls_unique.c \
+       loop_rewrite.c"
+
+for name in $TESTS; do
+    echo
+    echo $name
+    case $name in
+        determinize.c) $TRI_CMD "$@" --determinize determinize.c -- -xc 2>&1 ;;
+        make_calls_unique.c) $TRI_CMD "$@" --make-calls-unique make_calls_unique.c -- -xc 2>&1 ;;
+        loop_rewrite.c) $TRI_CMD "$@" loop_rewrite.c -- -xc 2>&1 ;;
+    esac
+done

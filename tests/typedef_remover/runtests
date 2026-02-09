@@ -1,0 +1,19 @@
+#!/bin/sh
+
+TESTS="typedef_removal.c \
+       struct_multi_field.c \
+       struct_single_line.c \
+       struct_combined_fields.c \
+       nested_struct.c \
+       struct_array.c \
+       struct_pointer.c \
+       enum_typedef.c \
+       basic_type_alias.c \
+       multi_typedef.c \
+       anonymous_struct_typedef.c"
+
+for name in $TESTS; do
+    echo
+    echo $name
+    $TRI_CMD "$@" $name -- -xc 2>&1
+done

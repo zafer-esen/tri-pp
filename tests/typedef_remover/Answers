@@ -1,0 +1,99 @@
+
+typedef_removal.c
+/* typedef  */ struct T { int x; }/*  T */ ;
+struct T global;
+void main() { global.x = 1; }
+
+struct_multi_field.c
+/* typedef  */ struct Point3D {
+    int x;
+    int y;
+    double z;
+}/*  Point3D */ ;
+
+void main() {
+    struct Point3D p;
+    p.x = 1;
+}
+
+struct_single_line.c
+/* typedef  */ struct Point2D { int x; int y; }/*  Point2D */ ;
+void main() { struct Point2D p; p.x = 1; }
+
+struct_combined_fields.c
+/* typedef  */ struct Vector {
+    int x, y, z;
+}/*  Vector */ ;
+void main() { struct Vector v; v.x = 0; }
+
+nested_struct.c
+/* typedef  */ struct Inner {
+    int x;
+}/*  Inner */ ;
+
+/* typedef  */ struct Outer {
+    struct Inner i;
+    int y;
+}/*  Outer */ ;
+
+void main() {
+    struct Outer o;
+    o.i.x = 1;
+}
+
+struct_array.c
+/* typedef  */ struct Buffer {
+    int data[10];
+}/*  Buffer */ ;
+
+void main() {
+    struct Buffer b;
+    b.data[0] = 1;
+}
+
+struct_pointer.c
+/* typedef  */ struct Node {
+    struct Node *next;
+    int val;
+}/*  Node */ ;
+
+void main() {
+    struct Node n;
+    n.next = 0;
+}
+
+enum_typedef.c
+/* typedef  */ enum Color {
+    RED, GREEN, BLUE
+}/*  Color */ ;
+
+void main() {
+    enum Color c = RED;
+}
+
+basic_type_alias.c
+// typedef int MyInt;
+// typedef unsigned long MyUlong;
+
+void main() {
+    int i = 10;
+    unsigned long l = 20;
+}
+
+multi_typedef.c
+struct S { int x; };
+// typedef struct S T1, *T2;
+
+void main() {
+    struct S a;
+    struct S* b = &a;
+}
+
+anonymous_struct_typedef.c
+// // typedef struct {
+// //     int a;
+// // } Anon;
+
+void main() {
+//     Anon x;
+}

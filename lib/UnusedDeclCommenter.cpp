@@ -35,6 +35,8 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(clang::Rewriter &
     functionDecl(unless(isImplicit())).bind("functionDecl"), 
     // comment out unused record decls
     recordDecl().bind("recordDecl"), 
+    // comment out unused enum decls
+    enumDecl().bind("enumDecl"),
     // comment out var decls using records,
     varDecl(
       unless(parmVarDecl()), // unless they are fun args
@@ -63,6 +65,9 @@ void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {
   const VarDecl * varDecl =
     Result.Nodes.getNodeAs<clang::VarDecl>("varDecl"); 
 
+  const EnumDecl * enumDecl =
+    Result.Nodes.getNodeAs<clang::EnumDecl>("enumDecl");
+
   if (functionDecl) 
   { // comment out unused function declarations
     if (!usedFunsAndTypes.functionIsSeen(functionDecl))
@@ -73,6 +78,12 @@ void UnusedDeclCommenterMatcher::run(const MatchFinder::MatchResult &Result) {
     if (!usedFunsAndTypes.typeIsSeen(
         Ctx->getTypeDeclType(recordDecl).getTypePtr()))
       doubleSlashCommentOutDeclaration(recordDecl, *Ctx, rewriter);
+  }
+  else if (enumDecl)
+  { // comment out unused enum declarations
+    if (!usedFunsAndTypes.typeIsSeen(
+        Ctx->getTypeDeclType(enumDecl).getTypePtr()))
+      doubleSlashCommentOutDeclaration(enumDecl, *Ctx, rewriter);
   }
   else if (varDecl) 
   { // comment out unused var declarations

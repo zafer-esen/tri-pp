@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+if [ -z "$TRI_CMD" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+    export TRI_CMD="$ROOT_DIR/tri-pp"
+fi
+
+DIR="$1"
+shift
+
+ANSWER_SUFFIX="$1"
+shift
+
+[ -d "$DIR" ] || exit 1
+
+echo -n "$DIR ($@) ... "
+
+export TIMEFORMAT="%U"
+# Capture both stdout and stderr (2>&1) as in example
+TIME=`time ( cd $DIR; ./runtests "$@" >Output"$ANSWER_SUFFIX" 2>&1; ) 2>&1`
+
+res=0
+
+if [ ! -f "$DIR"/Answers"$ANSWER_SUFFIX" ]; then
+    # Auto-generate Answers if missing
+    mv "$DIR"/Output"$ANSWER_SUFFIX" "$DIR"/Answers"$ANSWER_SUFFIX"
+    tput setaf 3
+    echo -ne "\tGenerated Answers"
+    tput sgr0
+else
+    if cmp -s "$DIR"/Answers"$ANSWER_SUFFIX" "$DIR"/Output"$ANSWER_SUFFIX"; then
+        tput setaf 2
+        echo -ne "\tSucceeded"
+        tput sgr0
+    else
+        tput setaf 1
+        echo -e "\tFAILED"
+        tput sgr0
+        echo
+        diff "$DIR"/Answers"$ANSWER_SUFFIX" "$DIR"/Output"$ANSWER_SUFFIX" || true
+        echo
+        cp "$DIR"/Output"$ANSWER_SUFFIX" "$DIR"/Output"$ANSWER_SUFFIX"-"`date +%s`"
+        res=1
+    fi
+fi
+
+echo -n " ($TIME"
+echo "s)"
+
+exit $res

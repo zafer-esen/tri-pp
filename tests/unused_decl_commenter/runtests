@@ -1,0 +1,42 @@
+#!/bin/sh
+
+TESTS="enum_array_size.c \
+       enum_in_expr.c \
+       assert_macro.c \
+       no_decl_slice.c \
+       unused_struct.c \
+       used_struct.c \
+       unused_func.c \
+       used_func.c \
+       unused_enum.c \
+       recursive.c \
+       global_var_used.c \
+       func_decl_impl_split.c \
+       func_decl_unused.c \
+       struct_forward_decl.c \
+       enum_forward_decl.c \
+       typedef_struct_usage.c \
+       typedef_struct_unused.c \
+       array_of_structs.c \
+       array_of_structs_unused.c \
+       pointer_to_struct.c \
+       pointer_to_struct_unused.c \
+       struct_in_struct.c \
+       struct_in_struct_unused.c \
+       enum_in_struct.c \
+       enum_in_struct_unused.c \
+       return_struct.c \
+       return_struct_unused.c \
+       param_struct.c \
+       param_struct_unused.c \
+       func_decl_impl_unused.c"
+
+for name in $TESTS; do
+    echo
+    echo $name
+    ARGS=""
+    if [ "$name" = "no_decl_slice.c" ]; then
+        ARGS="--no-decl-slice"
+    fi
+    $TRI_CMD "$@" $ARGS $name -- -xc 2>&1
+done

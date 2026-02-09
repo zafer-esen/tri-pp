@@ -1,0 +1,90 @@
+
+determinize.c
+/*
+  INPUT: IN1_g, IN_ARR_2_g, IN3_g
+*/
+
+int IN1_g;
+int IN_ARR_2_g[];
+int IN_ARR_2_idx_g = 0;
+int IN3_g;
+
+extern int nondet_int();
+extern int nondet_int_copy_1();
+extern int nondet_int_copy_2();
+extern int nondet_int_copy_3();
+
+int foo () {
+  return 42;
+}
+
+int bar() {
+  return foo();
+}
+
+int bar_copy_1() {
+  return foo();
+}
+
+void main()
+{
+  int x = IN1_g;
+  while(IN_ARR_2_g[IN_ARR_2_idx_g++]) {
+    x = IN_ARR_2_g[IN_ARR_2_idx_g++];
+  }
+  assert(x == IN3_g);
+
+  int y1 = foo();
+  int z1 = foo();
+
+  int y2 = bar();
+  int z2 = bar_copy_1();
+
+  assert(y1 == y2);
+}
+
+make_calls_unique.c
+extern int nondet_int();
+
+extern int nondet_int_copy_1();
+
+extern int nondet_int_copy_2();
+
+extern int nondet_int_copy_3();
+
+int foo () {
+  return 42;
+}
+
+int bar() {
+  return foo();
+}
+
+int bar_copy_1() {
+  return foo();
+}
+
+void main()
+{
+  int x = nondet_int();
+  while(nondet_int_copy_1()) {
+    x = nondet_int_copy_2();
+  }
+  assert(x == nondet_int_copy_3());
+
+  int y1 = foo();
+  int z1 = foo();
+
+  int y2 = bar();
+  int z2 = bar_copy_1();
+
+  assert(y1 == y2);
+}
+
+loop_rewrite.c
+extern int nondet_int();
+void main() {
+  { int __loop_idx_0 = nondet_int(); while(__loop_idx_0-->0) {
+    int x = 1;
+  } }
+}
