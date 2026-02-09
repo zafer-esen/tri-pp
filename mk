@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 buildDir=build
 llvmBuildDir=llvm/build
