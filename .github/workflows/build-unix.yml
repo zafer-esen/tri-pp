@@ -37,6 +37,11 @@ jobs:
     - name: Build
       run: ./mk
 
+    - name: Run Tests
+      run: |
+        export TRI_CMD=${{ github.workspace }}/build/tri-pp
+        ./tests/runalldirs
+
     - name: Rename Binary
       run: mv ${{ github.workspace }}/build/tri-pp ${{ github.workspace }}/tri-pp-${{ matrix.os }}
 
