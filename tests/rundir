@@ -24,21 +24,27 @@ TIME=`time ( cd $DIR; ./runtests "$@" >Output"$ANSWER_SUFFIX" 2>&1; ) 2>&1`
 
 res=0
 
+# Color support
+if [ -t 1 ] && [ -n "$TERM" ] && [ "$TERM" != "dumb" ]; then
+    RED=`tput setaf 1`
+    GREEN=`tput setaf 2`
+    YELLOW=`tput setaf 3`
+    RESET=`tput sgr0`
+else
+    RED=""
+    GREEN=""
+    YELLOW=""
+    RESET=""
+fi
+
 if [ ! -f "$DIR"/Answers"$ANSWER_SUFFIX" ]; then
-    # Auto-generate Answers if missing
-    mv "$DIR"/Output"$ANSWER_SUFFIX" "$DIR"/Answers"$ANSWER_SUFFIX"
-    tput setaf 3
-    echo -ne "\tGenerated Answers"
-    tput sgr0
+    echo -e "${RED}\tMissing Answers file!${RESET}"
+    res=1
 else
     if cmp -s "$DIR"/Answers"$ANSWER_SUFFIX" "$DIR"/Output"$ANSWER_SUFFIX"; then
-        tput setaf 2
-        echo -ne "\tSucceeded"
-        tput sgr0
+        echo -ne "${GREEN}\tSucceeded${RESET}"
     else
-        tput setaf 1
-        echo -e "\tFAILED"
-        tput sgr0
+        echo -e "${RED}\tFAILED${RESET}"
         echo
         diff "$DIR"/Answers"$ANSWER_SUFFIX" "$DIR"/Output"$ANSWER_SUFFIX" || true
         echo
