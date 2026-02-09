@@ -21,9 +21,11 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Install libtool (macOS)
+    - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
-      run: brew install libtool
+      run: |
+        brew install libtool llvm@13
+        echo "HOMEBREW_LLVM_PATH=$(brew --prefix llvm@13)" >> $GITHUB_ENV
 
     - name: Install libtool (Ubuntu)
       if: runner.os == 'Linux'
