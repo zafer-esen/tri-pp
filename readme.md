@@ -2,7 +2,7 @@
 
 A clang tool to preprocess C files before feeding them to TriCera.
 
-A build script (mk) is provided for Linux, which first downloads the prebuilt LLVM dependency, then builds the project against it, finally producing a static binary.
+A build script (mk) is provided for Linux, which first downloads the prebuilt LLVM dependency, then builds the project against it, finally producing a static binary. Alternatively, the tool can be built using a Docker image; see the included `Dockerfile` and `docker-build.sh` scripts.
 
 Supported OS: Linux, macOS
 
