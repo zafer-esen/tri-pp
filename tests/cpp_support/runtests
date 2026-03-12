@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [ -z "$TRI_CMD" ]; then
+    TRI_CMD="../../tri-pp"
+fi
+
+TESTS="inheritance_multiple.cpp \
+       namespaces_nested.cpp \
+       templates_basic.cpp \
+       templates_complex.cpp \
+       templates_typedef.cpp"
+
+for name in $TESTS; do
+    echo
+    echo "--- $name ---"
+    # Run with -cxx-yaml and dump both to stdout
+    # use a temporary file for YAML
+    YAML_TMP=$(mktemp)
+    $TRI_CMD "$@" -cxx-yaml "$YAML_TMP" "$name" -- -xc++ 2>&1
+    if [ -f "$YAML_TMP" ]; then
+        echo "--- YAML ---"
+        cat "$YAML_TMP"
+        rm "$YAML_TMP"
+    fi
+done

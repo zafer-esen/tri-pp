@@ -16,6 +16,9 @@
 #include "ExecutionCountAnalyzer.hpp"
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
+#include "CXXInfoExtractor.hpp"
+#include "llvm/Support/YAMLTraits.h"
+#include <fstream>
 
 using namespace clang;
 using namespace ast_matchers;
@@ -25,19 +28,34 @@ extern llvm::cl::opt<bool> makeCallsUnique;
 extern llvm::cl::opt<bool> noDeclSlice;
 extern llvm::cl::opt<std::string> entryFunctionName;
 extern llvm::cl::opt<std::string> encode;
+extern llvm::cl::opt<std::string> cxxYamlOutput;
 
 #include <string>
 
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
+//-----------------------------------------------------------------------------
+// Pass 1: Template Expansion
+//-----------------------------------------------------------------------------
+void TemplateExpansionConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
+  if (!Ctx.getLangOpts().CPlusPlus) return;
+  
+  // Create extractor in a mode that handles template expansion
+  CXXInfoExtractor extractor(Ctx, rewriter, Result);
+  extractor.TraverseDecl(Ctx.getTranslationUnitDecl());
+}
 
+//-----------------------------------------------------------------------------
+// Pass 2: Standard Preprocessors
+//-----------------------------------------------------------------------------
+void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   // todo: process files where an error has occurred?
   // errors also occur on some inputs which TriCera would accept
   bool hadError = Ctx.getDiagnostics().hasErrorOccurred();
-  bool collectAllFuns = hadError || noDeclSlice;
-  bool collectAllTypes = hadError || noDeclSlice;
+  bool isCXX = Ctx.getLangOpts().CPlusPlus;
+  bool collectAllFuns = hadError || noDeclSlice || isCXX;
+  bool collectAllTypes = hadError || noDeclSlice || isCXX;
   // todo: or return without doing anything?
   // if (Ctx.getDiagnostics().hasErrorOccurred()) return;
 
@@ -118,4 +136,23 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
 
 MainConsumer::~MainConsumer() {
   // any cleanup?
+}
+
+//-----------------------------------------------------------------------------
+// Pass 3: Semantic Extraction on the final file
+//-----------------------------------------------------------------------------
+void CXXInfoExtractionConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
+  if (yamlOutput.empty()) return;
+
+  CXXInfoExtractor extractor(Ctx, rewriter, Result, true /* ReadOnly */);
+  extractor.TraverseDecl(Ctx.getTranslationUnitDecl());
+  
+  std::error_code EC;
+  llvm::raw_fd_ostream yamlFile(yamlOutput, EC, llvm::sys::fs::OF_None);
+  if (!EC) {
+    llvm::yaml::Output yamlOut(yamlFile);
+    yamlOut << Result;
+  } else {
+    llvm::errs() << "Error opening YAML output file: " << EC.message() << "\n";
+  }
 }

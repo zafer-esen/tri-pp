@@ -1,0 +1,528 @@
+
+--- inheritance_multiple.cpp ---
+class Drawable {
+public:
+    virtual void draw() = 0;
+};
+
+class Clickable {
+public:
+    virtual void onClick() {}
+};
+
+class Button : public Drawable, public Clickable {
+public:
+    void draw() override {}
+    void onClick() override {}
+    static int getClickCount() { return count; }
+private:
+    static int count;
+};
+
+int Button::count = 0;
+
+int main() {
+    Button b;
+    b.draw();
+    b.onClick();
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   Drawable
+    Methods:
+      - Name:            draw
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          true
+        IsConst:         false
+  - QualifiedName:   Clickable
+    Methods:
+      - Name:            onClick
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+  - QualifiedName:   Button
+    BaseClasses:
+      - class Drawable
+      - class Clickable
+    Methods:
+      - Name:            draw
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+      - Name:            onClick
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+      - Name:            getClickCount
+        ReturnType:      int
+        IsStatic:        true
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+Objects:
+  - Name:            b
+    Type:            class Button
+    LineNumber:      23
+    ColumnNumber:    13
+    EnclosingFunction: main
+...
+
+--- namespaces_nested.cpp ---
+namespace university {
+    namespace department {
+        class Teacher {
+        public:
+            struct Details {
+                int age;
+                char* name;
+            };
+            void setDetails(Details d) { info = d; }
+            Details getDetails() const { return info; }
+        private:
+            Details info;
+        };
+    }
+}
+
+int main() {
+    university::department::Teacher t;
+    university::department::Teacher::Details d;
+    t.setDetails(d);
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   'university::department::Teacher'
+    Methods:
+      - Name:            setDetails
+        ReturnType:      void
+        Parameters:
+          - 'struct university::department::Teacher::Details'
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getDetails
+        ReturnType:      'struct university::department::Teacher::Details'
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+    Fields:
+      - Name:            info
+        Type:            'struct university::department::Teacher::Details'
+  - QualifiedName:   'university::department::Teacher::Details'
+    Fields:
+      - Name:            age
+        Type:            int
+      - Name:            name
+        Type:            'char *'
+Objects:
+  - Name:            d
+    Type:            'struct university::department::Teacher::Details'
+    LineNumber:      9
+    ColumnNumber:    38
+    EnclosingFunction: 'university::department::Teacher::setDetails'
+  - Name:            t
+    Type:            'class university::department::Teacher'
+    LineNumber:      18
+    ColumnNumber:    38
+    EnclosingFunction: main
+  - Name:            d
+    Type:            'struct university::department::Teacher::Details'
+    LineNumber:      19
+    ColumnNumber:    47
+    EnclosingFunction: main
+...
+
+--- templates_basic.cpp ---
+class Box_double_ {
+public:
+  Box_double_(double val) : value(val) {
+}
+  double getValue() const {
+    return this->value;
+}
+  void setValue(double val) {
+    this->value = val;
+}
+private:
+  double value;
+};
+
+
+class Box_int_ {
+public:
+  Box_int_(int val) : value(val) {
+}
+  int getValue() const {
+    return this->value;
+}
+  void setValue(int val) {
+    this->value = val;
+}
+private:
+  int value;
+};
+
+
+/* template <typename T>
+class Box {
+public:
+    Box(T val) : value(val) {}
+    T getValue() const { return value; }
+    void setValue(T val) { value = val; }
+private:
+    T value;
+} */;
+
+class Base {
+public:
+    virtual void show() {}
+};
+
+class Derived : public Base {
+public:
+    void show() override {}
+    static int getKind() { return 1; }
+};
+
+int main() {
+    Box_int_ intBox(10);
+    Box_double_ doubleBox(20.5);
+    Derived d;
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   Box_double_
+    Methods:
+      - Name:            Box_double_
+        ReturnType:      void
+        Parameters:
+          - double
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getValue
+        ReturnType:      double
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+      - Name:            setValue
+        ReturnType:      void
+        Parameters:
+          - double
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            value
+        Type:            double
+  - QualifiedName:   Box_int_
+    Methods:
+      - Name:            Box_int_
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getValue
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+      - Name:            setValue
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            value
+        Type:            int
+  - QualifiedName:   Base
+    Methods:
+      - Name:            show
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+  - QualifiedName:   Derived
+    BaseClasses:
+      - class Base
+    Methods:
+      - Name:            show
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+      - Name:            getKind
+        ReturnType:      int
+        IsStatic:        true
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+Objects:
+  - Name:            intBox
+    Type:            class Box_int_
+    LineNumber:      53
+    ColumnNumber:    20
+    EnclosingFunction: main
+  - Name:            doubleBox
+    Type:            class Box_double_
+    LineNumber:      54
+    ColumnNumber:    26
+    EnclosingFunction: main
+  - Name:            d
+    Type:            class Derived
+    LineNumber:      55
+    ColumnNumber:    14
+    EnclosingFunction: main
+MangledNames:
+  - MangledName:     Box_int_
+    OriginalName:    'Box<int>'
+  - MangledName:     Box_double_
+    OriginalName:    'Box<double>'
+...
+
+--- templates_complex.cpp ---
+class Pair_int__char_ {
+public:
+  int first;
+  char second;
+  Pair_int__char_(int a, char b) : first(a), second(b) {
+}
+};
+
+
+/* template <typename T1, typename T2>
+class Pair {
+public:
+    T1 first;
+    T2 second;
+    Pair(T1 a, T2 b) : first(a), second(b) {}
+} */;
+
+/* template <typename T>
+T add(T a, T b) {
+    return a + b;
+} */
+
+int add_int_(int a, int b) {
+    return a + b;
+}
+
+
+
+double add_double_(double a, double b) {
+    return a + b;
+}
+
+
+
+int main() {
+    Pair_int__char_ p(1, 97/* 'a' */ );
+    int sum = add_int_(5, 10);
+    double dsum = add_double_(1.5, 2.5);
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   Pair_int__char_
+    Methods:
+      - Name:            Pair_int__char_
+        ReturnType:      void
+        Parameters:
+          - int
+          - char
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            first
+        Type:            int
+      - Name:            second
+        Type:            char
+Objects:
+  - Name:            p
+    Type:            class Pair_int__char_
+    LineNumber:      36
+    ColumnNumber:    22
+    EnclosingFunction: main
+MangledNames:
+  - MangledName:     Pair_int__char_
+    OriginalName:    'Pair<int, char>'
+  - MangledName:     add_int_
+    OriginalName:    'add<int>'
+  - MangledName:     add_double_
+    OriginalName:    'add<double>'
+...
+
+--- templates_typedef.cpp ---
+class Box_char_ {
+public:
+  Box_char_(char val) : value(val) {
+}
+  char getValue() const {
+    return this->value;
+}
+private:
+  char value;
+};
+
+
+class Box_double_ {
+public:
+  Box_double_(double val) : value(val) {
+}
+  double getValue() const {
+    return this->value;
+}
+private:
+  double value;
+};
+
+
+class Box_int_ {
+public:
+  Box_int_(int val) : value(val) {
+}
+  int getValue() const {
+    return this->value;
+}
+private:
+  int value;
+};
+
+
+/* template <typename T>
+class Box {
+public:
+    Box(T val) : value(val) {}
+    T getValue() const { return value; }
+private:
+    T value;
+} */;
+
+// typedef Box_int_ IntBox;
+using DoubleBox = Box_double_;
+
+int main() {
+    class Box_int_ ib(10);
+    class Box_double_ db(20.5);
+    Box_char_ cb(97/* 'a' */ );
+    
+    int v = ib.getValue();
+    double d = db.getValue();
+    
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   Box_char_
+    Methods:
+      - Name:            Box_char_
+        ReturnType:      void
+        Parameters:
+          - char
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getValue
+        ReturnType:      char
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+    Fields:
+      - Name:            value
+        Type:            char
+  - QualifiedName:   Box_double_
+    Methods:
+      - Name:            Box_double_
+        ReturnType:      void
+        Parameters:
+          - double
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getValue
+        ReturnType:      double
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+    Fields:
+      - Name:            value
+        Type:            double
+  - QualifiedName:   Box_int_
+    Methods:
+      - Name:            Box_int_
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            getValue
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         true
+    Fields:
+      - Name:            value
+        Type:            int
+Objects:
+  - Name:            ib
+    Type:            class Box_int_
+    LineNumber:      50
+    ColumnNumber:    22
+    EnclosingFunction: main
+  - Name:            db
+    Type:            class Box_double_
+    LineNumber:      51
+    ColumnNumber:    25
+    EnclosingFunction: main
+  - Name:            cb
+    Type:            class Box_char_
+    LineNumber:      52
+    ColumnNumber:    17
+    EnclosingFunction: main
+MangledNames:
+  - MangledName:     Box_int_
+    OriginalName:    'Box<int>'
+  - MangledName:     Box_double_
+    OriginalName:    'Box<double>'
+  - MangledName:     Box_char_
+    OriginalName:    'Box<char>'
+...

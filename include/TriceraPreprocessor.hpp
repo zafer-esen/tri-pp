@@ -9,6 +9,17 @@
 #include "clang/AST/TypeVisitor.h"
 
 #include "TriCeraPreprocessorMain.hpp"
+#include "CXXInfoExtractor.hpp"
+
+class TemplateExpansionConsumer : public clang::ASTConsumer {
+public:
+  TemplateExpansionConsumer(clang::Rewriter &rewriter, SemanticAnalysisResult &Result) 
+      : rewriter(rewriter), Result(Result) {}
+  void HandleTranslationUnit(clang::ASTContext& Ctx) override;
+private:
+  clang::Rewriter &rewriter;
+  SemanticAnalysisResult &Result;
+};
 
 class MainConsumer : public clang::ASTConsumer {
 public:
@@ -21,4 +32,15 @@ public:
 private:
   clang::Rewriter &rewriter;
   PreprocessOutput &preprocessOutput;
+};
+
+class CXXInfoExtractionConsumer : public clang::ASTConsumer {
+public:
+  CXXInfoExtractionConsumer(clang::Rewriter &rewriter, const std::string &yamlOutput, SemanticAnalysisResult &Result) 
+      : rewriter(rewriter), yamlOutput(yamlOutput), Result(Result) {}
+  void HandleTranslationUnit(clang::ASTContext& Ctx) override;
+private:
+  clang::Rewriter &rewriter;
+  std::string yamlOutput;
+  SemanticAnalysisResult &Result;
 };
