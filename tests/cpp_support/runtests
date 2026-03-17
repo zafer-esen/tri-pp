@@ -8,7 +8,8 @@ TESTS="inheritance_multiple.cpp \
        namespaces_nested.cpp \
        templates_basic.cpp \
        templates_complex.cpp \
-       templates_typedef.cpp"
+       templates_typedef.cpp \
+       elab_type_simple.cpp"
 
 for name in $TESTS; do
     echo

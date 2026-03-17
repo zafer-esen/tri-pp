@@ -22,7 +22,7 @@ private:
 int Button::count = 0;
 
 int main() {
-    Button b;
+    class Button b;
     b.draw();
     b.onClick();
     return 0;
@@ -69,12 +69,6 @@ Classes:
         IsVirtual:       false
         IsPure:          false
         IsConst:         false
-Objects:
-  - Name:            b
-    Type:            class Button
-    LineNumber:      23
-    ColumnNumber:    13
-    EnclosingFunction: main
 ...
 
 --- namespaces_nested.cpp ---
@@ -86,10 +80,10 @@ namespace university {
                 int age;
                 char* name;
             };
-            void setDetails(Details d) { info = d; }
-            Details getDetails() const { return info; }
+            void setDetails(struct Details d) { this->info = d; }
+            struct Details getDetails() const { return this->info; }
         private:
-            Details info;
+            struct university::department::Teacher::Details info;
         };
     }
 }
@@ -128,22 +122,6 @@ Classes:
         Type:            int
       - Name:            name
         Type:            'char *'
-Objects:
-  - Name:            d
-    Type:            'struct university::department::Teacher::Details'
-    LineNumber:      9
-    ColumnNumber:    38
-    EnclosingFunction: 'university::department::Teacher::setDetails'
-  - Name:            t
-    Type:            'class university::department::Teacher'
-    LineNumber:      18
-    ColumnNumber:    38
-    EnclosingFunction: main
-  - Name:            d
-    Type:            'struct university::department::Teacher::Details'
-    LineNumber:      19
-    ColumnNumber:    47
-    EnclosingFunction: main
 ...
 
 --- templates_basic.cpp ---
@@ -181,8 +159,8 @@ private:
 class Box {
 public:
     Box(T val) : value(val) {}
-    T getValue() const { return value; }
-    void setValue(T val) { value = val; }
+    T getValue() const { return this->value; }
+    void setValue(T val) { this->value = val; }
 private:
     T value;
 } */;
@@ -199,9 +177,9 @@ public:
 };
 
 int main() {
-    Box_int_ intBox(10);
-    Box_double_ doubleBox(20.5);
-    Derived d;
+    class Box_int_ intBox(10);
+    class Box_double_ doubleBox(20.5);
+    class Derived d;
     return 0;
 }
 --- YAML ---
@@ -285,22 +263,6 @@ Classes:
         IsVirtual:       false
         IsPure:          false
         IsConst:         false
-Objects:
-  - Name:            intBox
-    Type:            class Box_int_
-    LineNumber:      53
-    ColumnNumber:    20
-    EnclosingFunction: main
-  - Name:            doubleBox
-    Type:            class Box_double_
-    LineNumber:      54
-    ColumnNumber:    26
-    EnclosingFunction: main
-  - Name:            d
-    Type:            class Derived
-    LineNumber:      55
-    ColumnNumber:    14
-    EnclosingFunction: main
 MangledNames:
   - MangledName:     Box_int_
     OriginalName:    'Box<int>'
@@ -344,7 +306,7 @@ double add_double_(double a, double b) {
 
 
 int main() {
-    Pair_int__char_ p(1, 97/* 'a' */ );
+    class Pair_int__char_ p(1, 97/* 'a' */ );
     int sum = add_int_(5, 10);
     double dsum = add_double_(1.5, 2.5);
     return 0;
@@ -368,12 +330,6 @@ Classes:
         Type:            int
       - Name:            second
         Type:            char
-Objects:
-  - Name:            p
-    Type:            class Pair_int__char_
-    LineNumber:      36
-    ColumnNumber:    22
-    EnclosingFunction: main
 MangledNames:
   - MangledName:     Pair_int__char_
     OriginalName:    'Pair<int, char>'
@@ -429,13 +385,13 @@ private:
     T value;
 } */;
 
-// typedef Box_int_ IntBox;
-using DoubleBox = Box_double_;
+// typedef class Box_int_ IntBox;
+using DoubleBox = class Box_double_;
 
 int main() {
     class Box_int_ ib(10);
     class Box_double_ db(20.5);
-    Box_char_ cb(97/* 'a' */ );
+    class Box_char_ cb(97/* 'a' */ );
     
     int v = ib.getValue();
     double d = db.getValue();
@@ -502,22 +458,6 @@ Classes:
     Fields:
       - Name:            value
         Type:            int
-Objects:
-  - Name:            ib
-    Type:            class Box_int_
-    LineNumber:      50
-    ColumnNumber:    22
-    EnclosingFunction: main
-  - Name:            db
-    Type:            class Box_double_
-    LineNumber:      51
-    ColumnNumber:    25
-    EnclosingFunction: main
-  - Name:            cb
-    Type:            class Box_char_
-    LineNumber:      52
-    ColumnNumber:    17
-    EnclosingFunction: main
 MangledNames:
   - MangledName:     Box_int_
     OriginalName:    'Box<int>'
@@ -525,4 +465,28 @@ MangledNames:
     OriginalName:    'Box<double>'
   - MangledName:     Box_char_
     OriginalName:    'Box<char>'
+...
+
+--- elab_type_simple.cpp ---
+class C {
+    int x;
+};
+
+int main() {
+    class C c1;
+    class C *c2 = &c1;
+    class C &c3 = c1;
+    class C **c4 = &c2;
+
+    class C c5, *c6;
+
+    return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   C
+    Fields:
+      - Name:            x
+        Type:            int
 ...

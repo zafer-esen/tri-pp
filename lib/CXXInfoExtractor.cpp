@@ -428,67 +428,6 @@ bool CXXInfoExtractor::VisitVarDecl(VarDecl *Decl) {
   if (VisitedDecls.count(Decl)) return true;
   VisitedDecls.insert(Decl);
 
-  PrintingPolicy Policy(Context.getLangOpts());
-  Policy.SuppressTagKeyword = false;
-  Policy.SuppressScope = false;
-  Policy.SuppressUnwrittenScope = false;
-
-  QualType T = Decl->getType();
-
-  if (T->isRecordType()) {
-    CXXObjectInfo ObjInfo;
-    ObjInfo.Name = Decl->getNameAsString();
-    std::string elabTypeSpec = T.getCanonicalType().getAsString(Policy);
-
-    // Use mangled name for type if it's a template instantiation
-    if (const auto *RD = T->getAsCXXRecordDecl()) {
-      if (const auto *Spec = dyn_cast<ClassTemplateSpecializationDecl>(RD)) {
-        ObjInfo.Type = mangleTemplateName(Spec);
-      } else {
-        std::string NewName = elabTypeSpec + " " + ObjInfo.Name;
-        ObjInfo.Type =  elabTypeSpec;
-        Rewriter.ReplaceText(Decl->getSourceRange(), NewName);
-      }
-    } else {
-      std::string NewName = elabTypeSpec +  " " + ObjInfo.Name;
-      ObjInfo.Type =  elabTypeSpec;
-      Rewriter.ReplaceText(Decl->getSourceRange(), NewName);
-    }
-
-    // Calculate line and column number in the transformed output
-    SourceLocation Loc = Decl->getLocation();
-    SourceManager &SM = Context.getSourceManager();
-    FileID FID = SM.getFileID(Loc);
-    SourceLocation FileStart = SM.getLocForStartOfFile(FID);
-
-    std::string RewrittenBefore = Rewriter.getRewrittenText(SourceRange(FileStart, Loc));
-    int LineCount = 1;
-    int LastNewLinePos = -1;
-    for (int i = 0; i < (int)RewrittenBefore.length(); ++i) {
-      if (RewrittenBefore[i] == '\n') {
-        LineCount++;
-        LastNewLinePos = i;
-      }
-    }
-    ObjInfo.LineNumber = LineCount;
-    ObjInfo.ColumnNumber = (int)RewrittenBefore.length() - LastNewLinePos;
-
-    // Find enclosing function
-    DeclContext *DC = Decl->getDeclContext();
-    while (DC && !DC->isFunctionOrMethod()) {
-      DC = DC->getParent();
-    }
-    if (DC) {
-      if (const auto *FD = dyn_cast<FunctionDecl>(DC)) {
-        ObjInfo.EnclosingFunction = FD->getQualifiedNameAsString();
-      }
-    }
-
-    if (ReadOnly) {
-      Result.Objects.push_back(ObjInfo);
-    }
-  }
-
   return true;
 }
 
