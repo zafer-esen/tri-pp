@@ -380,7 +380,7 @@ private:
 class Box {
 public:
     Box(T val) : value(val) {}
-    T getValue() const { return value; }
+    T getValue() const { return this->value; }
 private:
     T value;
 } */;
@@ -488,5 +488,62 @@ Classes:
   - QualifiedName:   C
     Fields:
       - Name:            x
+        Type:            int
+...
+
+--- access_member_vars.cpp ---
+class C {
+  public:
+    int val;
+
+    void set(int value) {
+      this->val = value;
+    }
+
+    void shadowed_set(int val) {
+      val = val;
+    }
+
+    void qualified_set(int val) {
+      this->val = val;
+    }
+};
+
+int main() {
+  class C c;
+  c.set(5);
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   C
+    Methods:
+      - Name:            set
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            shadowed_set
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            qualified_set
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            val
         Type:            int
 ...

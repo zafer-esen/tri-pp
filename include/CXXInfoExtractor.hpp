@@ -133,8 +133,8 @@ public:
   bool VisitFunctionDecl(clang::FunctionDecl *D);
   bool VisitCallExpr(clang::CallExpr *E);
   bool VisitTypeLoc(clang::TypeLoc TL);
-  bool VisitMemberExpr(clang::MemberExpr *ME);
   bool VisitFieldDecl(clang::FieldDecl *D);
+  bool VisitMemberExpr(clang::MemberExpr *ME);
 
   bool shouldVisitTemplateInstantiations() const;
   bool shouldVisitImplicitCode() const;
@@ -144,7 +144,6 @@ public:
 private:
   std::string mangleTemplateName(const clang::ClassTemplateSpecializationDecl *D);
   std::string mangleFunctionName(const clang::FunctionDecl *D);
-  bool isInBaseSpecifier(const clang::TypeLoc TL);
   clang::ASTContext &Context;
   clang::Rewriter &Rewriter;
   bool ReadOnly;

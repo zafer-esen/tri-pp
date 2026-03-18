@@ -7,7 +7,7 @@
 #include <regex>
 #include <algorithm>
 #include <cctype>
-#include "clang/AST/ParentMapContext.h"
+
 using namespace clang;
 
 /**
@@ -419,7 +419,6 @@ bool CXXInfoExtractor::VisitFieldDecl(FieldDecl *Decl) {
   return true;
 }
 
-
 bool CXXInfoExtractor::VisitVarDecl(VarDecl *Decl) {
   if (Context.getSourceManager().isInSystemHeader(Decl->getLocation())) {
     return true;
@@ -430,8 +429,6 @@ bool CXXInfoExtractor::VisitVarDecl(VarDecl *Decl) {
 
   return true;
 }
-
-
 bool CXXInfoExtractor::VisitMemberExpr(MemberExpr *ME) {
   if (ReadOnly) return true;
 
@@ -449,6 +446,9 @@ bool CXXInfoExtractor::VisitMemberExpr(MemberExpr *ME) {
 
   const FieldDecl *FD = dyn_cast<FieldDecl>(ME->getMemberDecl());
   if (!FD)
+    return true;
+
+  if (isa<ClassTemplateSpecializationDecl>(FD->getParent()))
     return true;
 
   Rewriter.InsertText(Loc, "this->");
