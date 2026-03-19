@@ -464,7 +464,8 @@ bool CXXInfoExtractor::VisitCXXThrowExpr(CXXThrowExpr *E) {
     Policy.SuppressTagKeyword = false;
     std::string TypeStr = T.getAsString(Policy);
     
-    Rewriter.InsertTextBefore(SubExpr->getBeginLoc(), "(" + TypeStr + ") ");
+    Rewriter.InsertTextBefore(SubExpr->getBeginLoc(), "(" + TypeStr + ") (");
+    Rewriter.InsertTextAfterToken(SubExpr->getEndLoc(), ")");
   }
   return true;
 }
