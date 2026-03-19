@@ -3,6 +3,8 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
 #include "llvm/Support/YAMLTraits.h"
 #include <string>
 #include <vector>
@@ -135,6 +137,7 @@ public:
   bool VisitTypeLoc(clang::TypeLoc TL);
   bool VisitFieldDecl(clang::FieldDecl *D);
   bool VisitMemberExpr(clang::MemberExpr *ME);
+  bool VisitCXXThrowExpr(clang::CXXThrowExpr *E);
 
   bool shouldVisitTemplateInstantiations() const;
   bool shouldVisitImplicitCode() const;

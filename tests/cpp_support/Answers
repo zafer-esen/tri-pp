@@ -547,3 +547,85 @@ Classes:
       - Name:            val
         Type:            int
 ...
+
+--- throw_test.cpp ---
+class MyException {};
+
+void f() {
+  throw (class MyException) MyException();
+}
+
+void g(int x) {
+  if (x > 0) throw (int) x;
+  if (x < 0) throw (const char *) "error";
+  throw (double) 1.0 + 2.0;
+}
+
+struct S {
+    int a;
+};
+
+void h() {
+    struct S s = {1};
+    throw (struct S) s;
+}
+
+void i() {
+    throw (char) 97/* 'a' */ ;
+}
+
+int main() {
+  try {
+    f();
+  } catch (class MyException& e) {
+  }
+  try {
+    g(1);
+  } catch (...) {}
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   MyException
+  - QualifiedName:   S
+    Fields:
+      - Name:            a
+        Type:            int
+...
+
+--- throw_with_cast.cpp ---
+class MyException {};
+
+void f() {
+  // Existing elaborated cast
+  throw (class MyException) (class MyException) MyException();
+}
+
+void g() {
+  // Existing unelaborated cast
+  throw (class MyException) (MyException) MyException();
+}
+
+struct S { int a; };
+
+void h() {
+  // Existing struct cast
+  throw (struct S) (struct S) S{1};
+}
+
+int main() {
+  try { f(); } catch (...) {}
+  try { g(); } catch (...) {}
+  try { h(); } catch (...) {}
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   MyException
+  - QualifiedName:   S
+    Fields:
+      - Name:            a
+        Type:            int
+...

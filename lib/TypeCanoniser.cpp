@@ -150,6 +150,20 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
       }
     }
 
+    if (!isWrapped) {
+      auto currParents = parents;
+      while (!currParents.empty()) {
+        for (const auto& parent : currParents) {
+          if (parent.get<CXXThrowExpr>()) {
+            isWrapped = true;
+            break;
+          }
+        }
+        if (isWrapped) break;
+        currParents = Ctx->getParents(currParents[0]);
+      }
+    }
+
     if (!isWrapped) { // need to elaborate the type
       const RecordType* rt = Result.Nodes.getNodeAs<clang::RecordType>("directRecordType");
       const EnumType* et = Result.Nodes.getNodeAs<clang::EnumType>("directEnumType");

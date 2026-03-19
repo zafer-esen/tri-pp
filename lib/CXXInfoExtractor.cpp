@@ -9,6 +9,7 @@
 #include <cctype>
 
 using namespace clang;
+using namespace clang::ast_matchers;
 
 /**
  * CXXInfoExtractor - Extracts structural and semantic information from C++ code.
@@ -453,5 +454,17 @@ bool CXXInfoExtractor::VisitMemberExpr(MemberExpr *ME) {
 
   Rewriter.InsertText(Loc, "this->");
 
+  return true;
+}
+
+bool CXXInfoExtractor::VisitCXXThrowExpr(CXXThrowExpr *E) {
+  if (const Expr *SubExpr = E->getSubExpr()) {
+    QualType T = SubExpr->getType();
+    PrintingPolicy Policy(Context.getLangOpts());
+    Policy.SuppressTagKeyword = false;
+    std::string TypeStr = T.getAsString(Policy);
+    
+    Rewriter.InsertTextBefore(SubExpr->getBeginLoc(), "(" + TypeStr + ") ");
+  }
   return true;
 }
