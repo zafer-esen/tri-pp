@@ -89,8 +89,8 @@ namespace university {
 }
 
 int main() {
-    university::department::Teacher t;
-    university::department::Teacher::Details d;
+    class university::department::Teacher t;
+    struct university::department::Teacher::Details d;
     t.setDetails(d);
     return 0;
 }
@@ -489,6 +489,31 @@ Classes:
     Fields:
       - Name:            x
         Type:            int
+...
+
+--- elab_type_nested_classes.cpp ---
+class Outermost {
+  public:
+    class Inner {
+      public:
+        class Innermost {
+        };
+    };
+};
+
+
+int main() {
+  class Outermost x;
+  class Outermost::Inner y;
+  class Outermost::Inner::Innermost z;
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   Outermost
+  - QualifiedName:   'Outermost::Inner'
+  - QualifiedName:   'Outermost::Inner::Innermost'
 ...
 
 --- access_member_vars.cpp ---

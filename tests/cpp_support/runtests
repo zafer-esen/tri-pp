@@ -10,6 +10,7 @@ TESTS="inheritance_multiple.cpp \
        templates_complex.cpp \
        templates_typedef.cpp \
        elab_type_simple.cpp \
+       elab_type_nested_classes.cpp \
        access_member_vars.cpp \
        throw_test.cpp \
        throw_with_cast.cpp"
