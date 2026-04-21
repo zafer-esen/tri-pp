@@ -161,7 +161,9 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
       auto currParents = parents;
       while (!currParents.empty()) {
         for (const auto& parent : currParents) {
-          if (parent.get<CXXThrowExpr>()) {
+          if (parent.get<CXXThrowExpr>() ||
+              parent.get<CXXDestructorDecl>() ||
+              parent.get<CXXMemberCallExpr>()) {
             isWrapped = true;
             break;
           }

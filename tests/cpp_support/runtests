@@ -13,7 +13,8 @@ TESTS="inheritance_multiple.cpp \
        elab_type_nested_classes.cpp \
        access_member_vars.cpp \
        throw_test.cpp \
-       throw_with_cast.cpp"
+       throw_with_cast.cpp \
+       qualified_function_calls.cpp"
 
 for name in $TESTS; do
     echo

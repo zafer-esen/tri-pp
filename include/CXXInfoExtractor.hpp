@@ -138,6 +138,7 @@ public:
   bool VisitFieldDecl(clang::FieldDecl *D);
   bool VisitMemberExpr(clang::MemberExpr *ME);
   bool VisitCXXThrowExpr(clang::CXXThrowExpr *E);
+  bool VisitCXXMemberCallExpr(clang::CXXMemberCallExpr *CE);
 
   bool shouldVisitTemplateInstantiations() const;
   bool shouldVisitImplicitCode() const;

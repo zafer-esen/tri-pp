@@ -463,9 +463,50 @@ bool CXXInfoExtractor::VisitCXXThrowExpr(CXXThrowExpr *E) {
     PrintingPolicy Policy(Context.getLangOpts());
     Policy.SuppressTagKeyword = false;
     std::string TypeStr = T.getAsString(Policy);
-    
+
     Rewriter.InsertTextBefore(SubExpr->getBeginLoc(), "(" + TypeStr + ") (");
     Rewriter.InsertTextAfterToken(SubExpr->getEndLoc(), ")");
   }
+  return true;
+}
+
+
+bool CXXInfoExtractor::VisitCXXMemberCallExpr(CXXMemberCallExpr *CE) {
+  if (ReadOnly) return true;
+
+  SourceManager &SM = Context.getSourceManager();
+  if (SM.isInSystemHeader(CE->getBeginLoc()))
+    return true;
+
+  // The callee of a member call is always a MemberExpr
+  MemberExpr *ME = dyn_cast<MemberExpr>(CE->getCallee()->IgnoreParenImpCasts());
+  if (!ME) return true;
+
+  // Skip if already explicitly qualified
+  if (ME->getQualifier()) return true;
+
+  CXXMethodDecl *MD = CE->getMethodDecl();
+  if (!MD) return true;
+
+  if (MD->isImplicit()) return true;
+
+  // Don't qualify virtual function, they aren't statically dispatched
+  if (MD->isVirtual()) return true;
+
+  CXXRecordDecl *RD = MD->getParent();
+  if (!RD) return true;
+
+  SourceLocation MemberLoc = ME->getMemberLoc();
+  if (MemberLoc.isInvalid() || MemberLoc.isMacroID())
+    return true;
+
+  std::string QualName;
+  if (auto *Spec = dyn_cast<ClassTemplateSpecializationDecl>(RD)) {
+    QualName = mangleTemplateName(Spec) + "::";
+  } else {
+    QualName = RD->getQualifiedNameAsString() + "::";
+  }
+
+  Rewriter.InsertTextBefore(MemberLoc, QualName);
   return true;
 }

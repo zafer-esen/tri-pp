@@ -91,7 +91,7 @@ namespace university {
 int main() {
     class university::department::Teacher t;
     struct university::department::Teacher::Details d;
-    t.setDetails(d);
+    t.university::department::Teacher::setDetails(d);
     return 0;
 }
 --- YAML ---
@@ -393,8 +393,8 @@ int main() {
     class Box_double_ db(20.5);
     class Box_char_ cb(97/* 'a' */ );
     
-    int v = ib.getValue();
-    double d = db.getValue();
+    int v = ib.Box_int_::getValue();
+    double d = db.Box_double_::getValue();
     
     return 0;
 }
@@ -536,7 +536,7 @@ class C {
 
 int main() {
   class C c;
-  c.set(5);
+  c.C::set(5);
   return 0;
 }
 --- YAML ---
@@ -653,4 +653,121 @@ Classes:
     Fields:
       - Name:            a
         Type:            int
+...
+
+--- qualified_function_calls.cpp ---
+class A {
+  public:
+    int x;
+    void set(int val) {
+      this->x = val;
+    }
+    int get() {
+      return this->x;
+    }
+
+    virtual int num() {
+      return 1;
+    }
+};
+class B : public A {
+  public:
+    int y;
+    int num() override {
+      return 2;
+    }
+};
+
+
+class C {
+  public:
+    int x;
+    C(int val) {
+      this->x = val;
+    }
+
+    ~C() {}
+};
+
+class Unused {
+};
+
+int main() {
+  class A a;
+  a.A::set(1);
+  a.A::get();
+
+  class B b;
+  class A *a_ptr = &b;
+
+  a_ptr->num(); // Should not be qualified as it is dynamically dispatched
+  b.num(); // Should not be qualified, still goes via vtable
+
+  class C c(10);
+
+  c.C::~C();
+
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   A
+    Methods:
+      - Name:            set
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            get
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            num
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            x
+        Type:            int
+  - QualifiedName:   B
+    BaseClasses:
+      - class A
+    Methods:
+      - Name:            num
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       true
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            y
+        Type:            int
+  - QualifiedName:   C
+    Methods:
+      - Name:            C
+        ReturnType:      void
+        Parameters:
+          - int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+      - Name:            '~C'
+        ReturnType:      void
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+    Fields:
+      - Name:            x
+        Type:            int
+  - QualifiedName:   Unused
 ...
