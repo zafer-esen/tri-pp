@@ -497,8 +497,12 @@ bool CXXInfoExtractor::VisitCXXMemberCallExpr(CXXMemberCallExpr *CE) {
   if (!RD) return true;
 
   SourceLocation MemberLoc = ME->getMemberLoc();
-  if (MemberLoc.isInvalid() || MemberLoc.isMacroID())
+  if (MemberLoc.isInvalid() || MemberLoc.isMacroID() && !SM.isMacroArgExpansion(MemberLoc))
     return true;
+
+  SourceLocation InsertLoc = SM.isMacroArgExpansion(MemberLoc)
+    ? SM.getSpellingLoc(MemberLoc)
+    : MemberLoc;
 
   std::string QualName;
   if (auto *Spec = dyn_cast<ClassTemplateSpecializationDecl>(RD)) {
@@ -507,6 +511,6 @@ bool CXXInfoExtractor::VisitCXXMemberCallExpr(CXXMemberCallExpr *CE) {
     QualName = RD->getQualifiedNameAsString() + "::";
   }
 
-  Rewriter.InsertTextBefore(MemberLoc, QualName);
+  Rewriter.InsertTextBefore(InsertLoc, QualName);
   return true;
 }

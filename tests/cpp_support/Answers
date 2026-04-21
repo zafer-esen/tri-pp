@@ -771,3 +771,35 @@ Classes:
         Type:            int
   - QualifiedName:   Unused
 ...
+
+--- qualified_func_in_macro.cpp ---
+#include <cassert>
+int add_one(int x) {
+  return x+1;
+}
+
+class C {
+  public:
+    int f() {
+      return 1;
+    }
+};
+
+int main() {
+  class C c;
+
+  assert(add_one(c.C::f()) == 2);
+  return 0;
+}
+--- YAML ---
+---
+Classes:
+  - QualifiedName:   C
+    Methods:
+      - Name:            f
+        ReturnType:      int
+        IsStatic:        false
+        IsVirtual:       false
+        IsPure:          false
+        IsConst:         false
+...
