@@ -20,13 +20,13 @@ using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
-ForLoopStmtExtractor::ForLoopStmtExtractor(clang::Rewriter &r, clang::ASTContext &Ctx, 
+ForLoopStmtExtractor::ForLoopStmtExtractor(TrackedRewriter &r, clang::ASTContext &Ctx, 
                       UsedFunAndTypeCollector &usedFunsAndTypes) {
     ForLoopStmtExtractorASTConsumer c(r, usedFunsAndTypes);
     c.HandleTranslationUnit(Ctx);
 }
 
-ForLoopStmtExtractorASTConsumer::ForLoopStmtExtractorASTConsumer(clang::Rewriter &r,
+ForLoopStmtExtractorASTConsumer::ForLoopStmtExtractorASTConsumer(TrackedRewriter &r,
                                      UsedFunAndTypeCollector &usedFunsAndTypes)
                            : rewriter(r) {
   handler = std::make_unique<ForLoopStmtExtractorMatcher>(rewriter, usedFunsAndTypes);
@@ -48,13 +48,13 @@ void ForLoopStmtExtractorMatcher::run(const MatchFinder::MatchResult &Result) {
   const DeclStmt * declStmt =
     Result.Nodes.getNodeAs<clang::DeclStmt>("declStmt"); 
 
-  if (forStmt && declStmt) 
+  if (forStmt && declStmt)
   { // get the decl. text from inside the for loop and move it before the loop
-    rewriter.InsertTextBefore(forStmt->getBeginLoc(), 
+    rewriter.InsertTextBefore(forStmt->getBeginLoc(),
       "{ " + rewriter.getRewrittenText(declStmt->getSourceRange()) + " "
     );
-    // comment out the decl. inside the for loop
-    wrapWithCComment(declStmt->getSourceRange(), rewriter);
+    // remove the decl., keep its semicolon as the for-init terminator
+    rewriter.BlankChars(declStmt->getBeginLoc(), declStmt->getEndLoc());
     // close the compound stmt after the loop
     rewriter.InsertTextAfter(forStmt->getEndLoc(), "}");
   } else {

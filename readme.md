@@ -24,7 +24,32 @@ which should print out the preprocessed file.
 # Implementation
 Read on if you are interested in the implementation.
 
-tri-pp has several components which are called sequentially.
+tri-pp runs its transformers in rounds, one transformer per round. Each
+round runs on a fresh parse of the previous round's text (held in memory),
+so the transformers cannot conflict: every round sees the earlier work as
+plain source text. A round that rewrites nothing reuses its parse for the
+next round, so the extra parses cost little. All edits are still tracked,
+and edits whose combined effect depends on application order (a bug within
+a single transformer) are reported loudly, with exit code 4, instead of
+being composed silently.
+
+Removed source text (typedefs, unused declarations, extracted for-loop
+declarations, ...) is replaced by whitespace of identical geometry: newlines
+are kept and every other character becomes a space. Byte offsets and line
+numbers of the surrounding code therefore stay stable.
+
+With `--line-markers`, the produced file carries GNU linemarkers
+(`# <line> "<file>"`) wherever the line mapping between input and output
+jumps, so a consumer can map every output line back to an authentic line of
+the original input. Inputs that already contain linemarkers (from cpp, or
+from an earlier tri-pp stage; TriCera invokes tri-pp up to three times in a
+row) are consumed and re-emitted in the original coordinates. An input that
+tri-pp does not rewrite is passed through unchanged.
+
+With `--facts <path>`, a small YAML file is written next to the output
+stating facts about the produced program.
+
+The transformer components:
 
 ## UsedFunctionAndTypeCollector
 It tries to find the main function, and follows all function calls from main
@@ -40,7 +65,7 @@ E.g. `typedef struct {...} S;` is converted to `struct S {...};`.
 Removes all unused declarations, which include both function and type
 declarations. It uses the results from "UsedFunctionAndTypeCollector".
 
-This also comments out some function declarations (or their implementations) 
+This also removes some function declarations (or their implementations)
 coming from included libraries, which are handled by TriCera natively. Examples
 are `__assert_fail`, `__assert_perror_fail`, `__assert` or SV-COMP functions
 such as `reach_error` (https://sv-comp.sosy-lab.org/2021/benchmarks.php).
@@ -59,20 +84,6 @@ Moves declarations from inside the for loop declaration to outside. E.g.,
 TriCera cannot parse the former directly.
 
 # Known Issues
-- UnusedDeclCommenter will comment out whole lines that the declaration is in. If
-  another declaration is in the same line, it will also be commented out. This
-  should usually not be an issue if the other declarations are using the same base
-  type, because UnusedDeclCommenter only comments out a declaration (except
-  function declarations) if the type of that declaration is never seen in the
-  program.
-
-  E.g. For `T1 x; T2 y;`, if either T1 or T2 is not a seen type, both declarations
-  will be commented out since they are in the same line.
-
-- TypedefRemover comments out some parts of the record declarations using
-  C-style `/*...*/` comments. If the commented-out region has nested comments
-  this might lead to unparseable output.
-  
 - Preprocessor might not always work correctly when using non-standard C that
   TriCera accepts. E.g. `thread {...}` blocks are not parsed correctly by the
   preprocessor, so TypeCanoniser does not work inside these blocks (i.e., use

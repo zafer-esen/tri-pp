@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Facts sidecar: --facts <path> writes a small YAML file stating facts
+# about the produced program (referenced allocation functions, array
+# declarations, clock/duration tokens); what to do with them is TriCera's
+# decision. The program output itself goes to /dev/null; only the facts
+# files are compared.
+
+run() {
+    name=$1; shift
+    echo
+    echo "$name"
+    $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -xc 2>&1
+    echo "exit code: $?"
+    cat Output.facts.yml
+    rm -f Output.facts.yml
+}
+
+run malloc_use.c "$@"
+run nothing_referenced.c "$@"
+run malloc_in_removed_decl.c "$@"
+run sized_array.c "$@"
+run unbounded_array_param.c "$@"
+run determinize_adds_arrays.c "$@" --determinize
+run determinize_with_own_arrays.c "$@" --determinize
+run time_tokens.c "$@"

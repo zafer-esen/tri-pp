@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Rewrite-conflict detection: order-dependent transformer edits must be
+# reported with both offending edits and a non-zero exit, and must produce
+# no output; order-independent compositions must keep working. The
+# conflict case deliberately drops "$@" (i.e. -q) so the diagnostic itself
+# is part of the compared output.
+
+echo
+echo guard_copy_canonised.c
+$TRI_CMD "$@" guard_copy_canonised.c -- -xc 2>&1
+echo "exit code: $?"
+
+echo
+echo conflict_nested_nondet.c
+$TRI_CMD --determinize conflict_nested_nondet.c -- -xc 2>&1
+echo "exit code: $?"
+
+echo
+echo clean_no_conflict.c
+$TRI_CMD "$@" clean_no_conflict.c -- -xc 2>&1
+echo "exit code: $?"

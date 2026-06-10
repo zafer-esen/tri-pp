@@ -34,6 +34,9 @@ set(TRICERA_TOOLS
 
 set(tri-pp_SOURCES
   TriceraPreprocessorMain.cpp
+  lib/TrackedRewriter.cpp
+  lib/LineMarkerEmitter.cpp
+  lib/FactsCollector.cpp
   lib/TriceraPreprocessor.cpp
   lib/UsedFunctionAndTypeCollector.cpp
   lib/TypedefRemover.cpp

@@ -10,6 +10,8 @@ typedef struct PreprocessOutput {
   int isUnsupported; // boolean
   // 1 if error occurred while processing the file
   int hasErrorOccurred; // boolean
+  // 1 if conflicting (order-dependent) rewrites were detected
+  int hasRewriteConflict; // boolean
   // a char buffer to return a string, currently not used for anything
   char* outputBuffer;  
   //...

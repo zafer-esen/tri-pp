@@ -1,0 +1,57 @@
+
+geometry_preserving.c
+tri-pp exit code: 0
+PASS: no markers for line-count-preserving input
+PASS: probe_a -> geometry_preserving.c:15, geometry_preserving.c:18
+PASS: probe_b -> geometry_preserving.c:16, geometry_preserving.c:18, geometry_preserving.c:20
+PASS: probe_c -> geometry_preserving.c:20, geometry_preserving.c:21
+checker exit code: 0
+parse-equivalence: PASS
+
+clone_functions.c
+tri-pp exit code: 0
+PASS: probe_helper_body -> clone_functions.c:6, clone_functions.c:7
+PASS: probe_main -> clone_functions.c:13, clone_functions.c:14
+checker exit code: 0
+parse-equivalence: PASS
+
+determinize_top.c
+tri-pp exit code: 0
+PASS: probe_acc -> determinize_top.c:7, determinize_top.c:9, determinize_top.c:12
+PASS: probe_x -> determinize_top.c:6, determinize_top.c:8, determinize_top.c:10
+checker exit code: 0
+parse-equivalence: PASS
+
+multiline_for.c
+tri-pp exit code: 0
+PASS: probe_acc -> multiline_for.c:7, multiline_for.c:11, multiline_for.c:13
+PASS: probe_after -> multiline_for.c:13, multiline_for.c:14
+PASS: probe_i -> multiline_for.c:8, multiline_for.c:10, multiline_for.c:11
+PASS: probe_n -> multiline_for.c:6, multiline_for.c:10
+checker exit code: 0
+parse-equivalence: PASS
+
+chained_markers.c
+tri-pp exit code: 0
+PASS: probe_a -> original.c:200, original.c:300
+PASS: probe_b -> original.c:300, original.c:301
+PASS: probe_v -> original.c:102, original.c:103
+checker exit code: 0
+parse-equivalence: PASS
+
+acsl_annotations.c
+tri-pp exit code: 0
+PASS: probe_h -> acsl_annotations.c:8, acsl_annotations.c:9
+PASS: probe_m -> acsl_annotations.c:22, acsl_annotations.c:23
+PASS: probe_v -> acsl_annotations.c:12, acsl_annotations.c:13, acsl_annotations.c:15, acsl_annotations.c:16
+checker exit code: 0
+ACSL byte-identical: PASS
+no marker inside ACSL: PASS
+
+chained stages (determinize_top.c)
+tri-pp exit code: 0
+tri-pp exit code: 0
+tri-pp exit code: 0
+PASS: probe_acc -> determinize_top.c:7, determinize_top.c:9, determinize_top.c:12
+PASS: probe_x -> determinize_top.c:6, determinize_top.c:8, determinize_top.c:10
+checker exit code: 0

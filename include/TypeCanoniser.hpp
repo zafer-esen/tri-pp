@@ -14,12 +14,13 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 
 class TypeCanoniserMatcher : 
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  TypeCanoniserMatcher(clang::Rewriter &r, 
+  TypeCanoniserMatcher(TrackedRewriter &r, 
                   UsedFunAndTypeCollector &usedFunsAndTypes)
                   : rewriter(r), usedFunsAndTypes(usedFunsAndTypes) {}
   // this callback executes on a match
@@ -29,26 +30,26 @@ public:
   void onEndOfTranslationUnit() override{};
 
 private:
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   llvm::SmallSet<clang::SourceLocation, 32> editedLocations;
   UsedFunAndTypeCollector &usedFunsAndTypes;
 };
 
 class TypeCanoniserASTConsumer : public clang::ASTConsumer {
 public:
-  TypeCanoniserASTConsumer(clang::Rewriter &r, 
+  TypeCanoniserASTConsumer(TrackedRewriter &r, 
                            UsedFunAndTypeCollector &usedFunsAndTypes);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override;
 private:
   clang::ast_matchers::MatchFinder finder;
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   std::unique_ptr<TypeCanoniserMatcher> handler;
 };
 
 // collects all seen functions and types on construction
 class TypeCanoniser {
   public:
-  TypeCanoniser(clang::Rewriter &r, clang::ASTContext &Ctx, 
+  TypeCanoniser(TrackedRewriter &r, clang::ASTContext &Ctx, 
                 UsedFunAndTypeCollector &usedFunsAndTypes) {
     TypeCanoniserASTConsumer c(r, usedFunsAndTypes);
     c.HandleTranslationUnit(Ctx);

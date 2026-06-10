@@ -19,7 +19,7 @@ using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
-TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
+TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(TrackedRewriter &r,
                                   UsedFunAndTypeCollector &usedFunsAndTypes)
                            : rewriter(r) {
   handler = std::make_unique<TypeCanoniserMatcher>(rewriter, usedFunsAndTypes);
@@ -125,10 +125,22 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
         // this adds missing kind name if necessary, e.g. struct or union
         std::string tagName = (!isRecordWithKindName ? (kindName + " ") : "");
 
-        std::string completeTypeSpec = (tagName + 
+        std::string completeTypeSpec = (tagName +
                                         typeVisitor.getUnqualifiedTypeName());
 
         rewriter.ReplaceText(SourceRange(B, E), completeTypeSpec);
+
+        // name the anonymous record or enum, so the canonised uses refer
+        // to a declared tag once the typedef is removed
+        if (!isRecordWithKindName) {
+          const TagDecl *tagDecl = TheRecordType
+                                       ? TheRecordType->getAsTagDecl()
+                                       : TheEnumType->getAsTagDecl();
+          if (editedLocations.insert(tagDecl->getBeginLoc()).second)
+            rewriter.InsertTextAfterToken(
+                tagDecl->getBeginLoc(),
+                " " + TheTypedefType->getDecl()->getNameAsString());
+        }
       }
   } 
   else if (declStmt) {

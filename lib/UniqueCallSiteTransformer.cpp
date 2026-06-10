@@ -53,7 +53,7 @@ static bool isLeafFunction(const FunctionDecl *FD) {
 }
 
 UniqueCallTransformer::UniqueCallTransformer(
-    clang::Rewriter &R, clang::ASTContext &Ctx, const UsedFunAndTypeCollector &U)
+    TrackedRewriter &R, clang::ASTContext &Ctx, const UsedFunAndTypeCollector &U)
     : rewriter(R), Ctx(Ctx), usedFunsAndTypes(U) {}
 
 void UniqueCallTransformer::transform() {
@@ -203,7 +203,21 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
       insertPos = clang::Lexer::getLocForEndOfToken(mostRecentDecl->getEndLoc(), 0, SM, LangOpts);
   }
 
-  rewriter.InsertText(insertPos, "\n\n" + originalFuncText);
+  // record where the cloned text came from, so line markers can map the
+  // clone back to the original declaration. the inserted text starts with
+  // "\n\n", giving one empty line before the cloned text, so the origin is
+  // one line above the declaration.
+  unsigned originLine = 0;
+  std::pair<clang::FileID, unsigned> cloneBegin =
+      SM.getDecomposedLoc(rangeToCopy.getBegin());
+  if (cloneBegin.first == SM.getMainFileID()) {
+    unsigned line = SM.getLineNumber(cloneBegin.first, cloneBegin.second);
+    if (line > 1)
+      originLine = line - 1;
+  }
+  rewriter.InsertText(insertPos, "\n\n" + originalFuncText,
+                      /*InsertAfter=*/true, /*indentNewLines=*/false,
+                      originLine);
 
   return newName;
 }

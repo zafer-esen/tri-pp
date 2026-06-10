@@ -1,9 +1,10 @@
 #include "Determinizer.hpp"
+#include <algorithm>
 #include <sstream>
 #include "clang/Basic/SourceManager.h"
 #include "llvm/Support/raw_ostream.h"
 
-Determinizer::Determinizer(clang::Rewriter &R, clang::ASTContext &Ctx,
+Determinizer::Determinizer(TrackedRewriter &R, clang::ASTContext &Ctx,
                            const ExecutionCountAnalyzer &Analyzer)
     : TheRewriter(R), Context(Ctx), ExecAnalyzer(Analyzer) {
     run();
@@ -45,6 +46,26 @@ void Determinizer::run() {
     }
 }
 
+
+std::vector<std::string> Determinizer::addedInputArrays() const {
+    std::vector<std::string> names;
+    for (std::map<std::string, UnboundedInputInfo>::const_iterator it =
+             typeToArrayInfoMap.begin();
+         it != typeToArrayInfoMap.end(); ++it)
+        names.push_back(it->second.globalArrayName);
+    return names;
+}
+
+std::vector<std::string> Determinizer::addedInputVariables() const {
+    // headerInputNames holds both; the arrays are reported separately
+    std::vector<std::string> arrays = addedInputArrays();
+    std::vector<std::string> names;
+    for (size_t i = 0; i < headerInputNames.size(); ++i)
+        if (std::find(arrays.begin(), arrays.end(), headerInputNames[i]) ==
+            arrays.end())
+            names.push_back(headerInputNames[i]);
+    return names;
+}
 
 //===----------------------------------------------------------------------===//
 // DeterminizerVisitor Implementation

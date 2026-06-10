@@ -14,7 +14,7 @@
 
 using namespace clang;
 
-NondetLoopGuardRewriter::NondetLoopGuardRewriter(Rewriter &R, ASTContext &Ctx)
+NondetLoopGuardRewriter::NondetLoopGuardRewriter(TrackedRewriter &R, ASTContext &Ctx)
         : rewriter(R), context(Ctx), tempLoopIdxCounter(0) {
 
     TraverseDecl(Ctx.getTranslationUnitDecl());
@@ -47,15 +47,15 @@ void NondetLoopGuardRewriter::rewriteWhileStmt(WhileStmt *S) {
 
     const auto *callExpr = cast<CallExpr>(S->getCond()->IgnoreParenImpCasts());
     std::string tempVarName = "__loop_idx_" + std::to_string(tempLoopIdxCounter++);
-    std::string callText = Lexer::getSourceText(
-            CharSourceRange::getTokenRange(callExpr->getSourceRange()),
-            sm, langOpts).str();
+    std::string callText = rewriter.getRewrittenText(callExpr->getSourceRange());
 
     std::string prefix;
     llvm::raw_string_ostream ss(prefix);
     ss << "{ int " << tempVarName << " = " << callText << "; ";
     rewriter.InsertTextBefore(S->getBeginLoc(), ss.str());
-    rewriter.ReplaceText(S->getCond()->getSourceRange(), tempVarName + "-->0");
+    // blank the guard and put the counter check in its place
+    rewriter.BlankText(S->getCond()->getSourceRange());
+    rewriter.InsertTextBefore(S->getCond()->getBeginLoc(), tempVarName + "-->0");
 
     Stmt *body = S->getBody();
     if (!isa<CompoundStmt>(body)) {
