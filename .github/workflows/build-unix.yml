@@ -15,16 +15,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux builds run inside the pinned Ubuntu 18.04 image (see
-          # Dockerfile for why); macOS builds natively with Apple clang.
-          # Intel macOS has no native LLVM 18.1.8 package and is not built.
+          # Linux builds run inside a pinned container whose toolchain matches
+          # the per-arch LLVM prebuilt (see Dockerfile for why the base
+          # differs); macOS builds natively with Apple clang. Intel macOS has
+          # no native LLVM 18.1.8 package and is not built.
           - os: ubuntu-22.04
             asset: tri-pp-linux-x64
             mode: docker
+            base: ubuntu:18.04
             archcheck: x86-64
           - os: ubuntu-24.04-arm
             asset: tri-pp-linux-arm64
             mode: docker
+            base: ubuntu:22.04
             archcheck: aarch64
           - os: macos-15
             asset: tri-pp-macos-arm64
@@ -34,10 +37,10 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Build (Linux, in Ubuntu 18.04 container)
+    - name: Build (Linux, in pinned container)
       if: matrix.mode == 'docker'
       run: |
-        docker build -t tri-pp-build .
+        docker build --build-arg BASE=${{ matrix.base }} -t tri-pp-build .
         docker run --rm -v "$PWD":/build-zone tri-pp-build /bin/bash -c "chmod +x mk && ./mk"
         cp build/tri-pp "${{ matrix.asset }}"
 
@@ -45,6 +48,7 @@ jobs:
       if: matrix.mode == 'native'
       run: |
         brew list cmake >/dev/null 2>&1 || brew install cmake
+        brew list zstd >/dev/null 2>&1 || brew install zstd
         ./mk
         cp tri-pp "${{ matrix.asset }}"
 

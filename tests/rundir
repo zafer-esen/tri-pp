@@ -19,8 +19,10 @@ shift
 echo -n "$DIR ($@) ... "
 
 export TIMEFORMAT="%U"
-# Capture both stdout and stderr (2>&1) as in example
-TIME=`time ( cd $DIR; ./runtests "$@" >Output"$ANSWER_SUFFIX" 2>&1; ) 2>&1`
+# Capture both stdout and stderr (2>&1) as in example. runtests may end with a
+# nonzero tri-pp exit (tolerated inputs); the verdict is the Answers/Output
+# comparison below, so do not let set -e abort before it.
+TIME=`time ( cd $DIR; ./runtests "$@" >Output"$ANSWER_SUFFIX" 2>&1; ) 2>&1 || true`
 
 res=0
 

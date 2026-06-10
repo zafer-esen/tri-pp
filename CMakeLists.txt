@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(tricera-preprocessors)
 set(PROJECT_VERSION "0.4.0")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
@@ -60,6 +60,13 @@ set(tri-pp_SOURCES
 # libtinfo would tie the shipped binary to the build host's distro.
 if(APPLE)
   find_library(TERMINFO_LIBRARY NAMES ncurses curses)
+  # the macOS LLVM prebuilt enables zstd compression in LLVMSupport; link the
+  # static libzstd.a (from Homebrew) so the binary has no Homebrew runtime dep
+  find_library(ZSTD_STATIC_LIBRARY NAMES libzstd.a
+    HINTS /opt/homebrew/opt/zstd/lib /usr/local/opt/zstd/lib)
+  if(NOT ZSTD_STATIC_LIBRARY)
+    message(FATAL_ERROR "static libzstd.a not found; brew install zstd")
+  endif()
 else()
   set(SAVED_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
@@ -101,6 +108,7 @@ endif()
       pthread
       z
       ${TERMINFO_LIBRARY}
+      ${ZSTD_STATIC_LIBRARY}
     )
 
 # Configure include directories for 'tool'
