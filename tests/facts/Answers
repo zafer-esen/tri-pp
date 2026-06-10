@@ -8,10 +8,13 @@ allocationFunctions: [free, malloc]
 # declarations with array types / with arrays of unknown bound
 usesArrays: false
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -24,10 +27,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: false
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -40,10 +46,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: false
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -56,10 +65,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: true
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -72,10 +84,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: true
 usesUnboundedArrays: true
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -88,10 +103,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: false
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: [IN1_g]
 inputArrays: [IN_ARR_2_g]
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -104,10 +122,13 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: true
 usesUnboundedArrays: true
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: [IN1_g]
 inputArrays: [IN_ARR_2_g]
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
 
@@ -120,9 +141,31 @@ allocationFunctions: []
 # declarations with array types / with arrays of unknown bound
 usesArrays: false
 usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
 # inputs added by the determinizer (also in the INPUT header comment)
 inputVariables: []
 inputArrays: []
-# approximate: token-level scan for TriCera's clock/duration extensions
+# clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: true
+durationTokenSeen: false
+
+exceptions.cpp
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: true
+usesTryCatch: true
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
 durationTokenSeen: false

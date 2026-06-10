@@ -10,7 +10,10 @@ run() {
     name=$1; shift
     echo
     echo "$name"
-    $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -xc 2>&1
+    case "$name" in
+        *.cpp) $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- 2>&1 ;;
+        *)     $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -xc 2>&1 ;;
+    esac
     echo "exit code: $?"
     cat Output.facts.yml
     rm -f Output.facts.yml
@@ -24,3 +27,4 @@ run unbounded_array_param.c "$@"
 run determinize_adds_arrays.c "$@" --determinize
 run determinize_with_own_arrays.c "$@" --determinize
 run time_tokens.c "$@"
+run exceptions.cpp "$@"

@@ -16,6 +16,9 @@ struct ProgramFacts {
   bool usesArrays = false;
   // some declaration has an array type of unknown bound
   bool usesUnboundedArrays = false;
+  // the program contains a throw expression / a try-catch block
+  bool usesThrow = false;
+  bool usesTryCatch = false;
   // input variables and input arrays added by the determinizer
   std::vector<std::string> inputVariables;
   std::vector<std::string> inputArrays;

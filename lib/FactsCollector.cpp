@@ -2,7 +2,9 @@
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
+#include "clang/AST/ExprCXX.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/StmtCXX.h"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
@@ -22,6 +24,8 @@ void collectFacts(ASTContext &Ctx, ProgramFacts &facts) {
   facts.allocationFunctions.clear();
   facts.usesArrays = false;
   facts.usesUnboundedArrays = false;
+  facts.usesThrow = false;
+  facts.usesTryCatch = false;
 
   class FactsVisitor : public RecursiveASTVisitor<FactsVisitor> {
   public:
@@ -57,6 +61,18 @@ void collectFacts(ASTContext &Ctx, ProgramFacts &facts) {
 
     bool VisitFieldDecl(FieldDecl *decl) {
       recordArrayDecl(decl->getType(), decl->getBeginLoc());
+      return true;
+    }
+
+    bool VisitCXXThrowExpr(CXXThrowExpr *expr) {
+      if (inMainFile(expr->getBeginLoc()))
+        facts.usesThrow = true;
+      return true;
+    }
+
+    bool VisitCXXTryStmt(CXXTryStmt *stmt) {
+      if (inMainFile(stmt->getBeginLoc()))
+        facts.usesTryCatch = true;
       return true;
     }
 
@@ -165,6 +181,9 @@ bool writeFacts(StringRef path, const ProgramFacts &facts,
   out << "usesArrays: " << (facts.usesArrays ? "true" : "false") << "\n";
   out << "usesUnboundedArrays: "
       << (facts.usesUnboundedArrays ? "true" : "false") << "\n";
+  out << "# C++ exceptions\n";
+  out << "usesThrow: " << (facts.usesThrow ? "true" : "false") << "\n";
+  out << "usesTryCatch: " << (facts.usesTryCatch ? "true" : "false") << "\n";
   out << "# inputs added by the determinizer (also in the INPUT header"
          " comment)\n";
   out << "inputVariables: [";
@@ -175,8 +194,8 @@ bool writeFacts(StringRef path, const ProgramFacts &facts,
   for (size_t i = 0; i < facts.inputArrays.size(); ++i)
     out << (i > 0 ? ", " : "") << facts.inputArrays[i];
   out << "]\n";
-  out << "# approximate: token-level scan for TriCera's clock/duration"
-         " extensions\n";
+  out << "# clock/duration are TriCera keywords; reported when the token"
+         " appears\n";
   out << "clockTokenSeen: " << (clockTokenSeen ? "true" : "false") << "\n";
   out << "durationTokenSeen: "
       << (durationTokenSeen ? "true" : "false") << "\n";
