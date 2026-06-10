@@ -2,6 +2,7 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "TrackedRewriter.hpp"
 #include <vector>
 
 namespace clang {
@@ -12,14 +13,14 @@ namespace clang {
 class NondetLoopGuardRewriter :
   public clang::RecursiveASTVisitor<NondetLoopGuardRewriter> {
 public:
-    explicit NondetLoopGuardRewriter(clang::Rewriter &R, clang::ASTContext &Ctx);
+    explicit NondetLoopGuardRewriter(TrackedRewriter &R, clang::ASTContext &Ctx);
 
     bool VisitWhileStmt(clang::WhileStmt *S);
 
 private:
     void rewriteWhileStmt(clang::WhileStmt *S);
 
-    clang::Rewriter &rewriter;
+    TrackedRewriter &rewriter;
     clang::ASTContext &context;
     int tempLoopIdxCounter;
     std::vector<clang::WhileStmt *> loopsToRewrite;

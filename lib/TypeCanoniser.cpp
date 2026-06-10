@@ -1,25 +1,18 @@
 #include "TypeCanoniser.hpp"
-#include "Utilities.hpp"
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/AST/ASTConsumer.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/AST/Decl.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/AST/TypeVisitor.h"
-
-#include "llvm/Support/raw_ostream.h"
-
 
 using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
-TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
+TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(TrackedRewriter &r,
                                   UsedFunAndTypeCollector &usedFunsAndTypes)
                            : rewriter(r) {
   handler = std::make_unique<TypeCanoniserMatcher>(rewriter, usedFunsAndTypes);
@@ -27,43 +20,51 @@ TypeCanoniserASTConsumer::TypeCanoniserASTConsumer(clang::Rewriter &r,
     typedefType().bind("typedefType"), // matches nodes that use a typedef
     anyOf(
       //typeLoc(loc(qualType(typedefType(hasUnqualifiedDesugaredType(arrayType(hasElementType(qualType(hasDeclaration(decl(isImplicit()))))))))))
-      hasCanonicalType(recordType().bind("recordType")), 
-      hasCanonicalType(enumType().bind("enumType")), 
+      hasCanonicalType(recordType().bind("recordType")),
+      hasCanonicalType(enumType().bind("enumType")),
       // checking descendants looks through pointer types
       hasCanonicalType(hasDescendant(recordType().bind("recordType"))),
       hasCanonicalType(hasDescendant(enumType().bind("enumType"))),
       anything()
     )))).bind("typedefUsingTypeLoc");
-  
+
+  TypeLocMatcher unelaboratedTagLocMatcher = typeLoc(
+    loc(qualType(
+      anyOf(recordType().bind("directRecordType"), enumType().bind("directEnumType"))
+    ))
+  ).bind("unelaboratedTagLoc");
+
   // matches sizeof expressions such as int * x = malloc(sizeof * x);
-  // these are canonised as malloc(sizeof(int *))  
+  // these are canonised as malloc(sizeof(int *))
   StatementMatcher sizeOfMatcher = sizeOfExpr(unaryExprOrTypeTraitExpr(
     hasDescendant(declRefExpr().bind("sizeOfDeclRefExpr"))).bind("sizeOfExpr")
   );
 
   DeclarationMatcher enumMatcher = enumDecl().bind("enumDecl");
 
-  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
     typedefUsingTypeLocMatcher), handler.get());
-  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
+    unelaboratedTagLocMatcher), handler.get());
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
     sizeOfMatcher), handler.get());
-  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
     enumMatcher), handler.get());
 }
 
 void TypeCanoniserASTConsumer::HandleTranslationUnit(clang::ASTContext &Ctx) {
   finder.matchAST(Ctx);
-    
+
   StatementMatcher multiDeclStmtMatcher = declStmt(
-    unless(hasSingleDecl(decl())), 
-    containsDeclaration(0, 
+    unless(hasSingleDecl(decl())),
+    containsDeclaration(0,
       declaratorDecl(hasType(
         typedefType().bind("typedefType"))
       ).bind("declaratorDecl")
     )
   ).bind("declStmt");
 
-  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, 
+  finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource,
     multiDeclStmtMatcher), handler.get());
   finder.matchAST(Ctx);
 }
@@ -73,65 +74,143 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
   ASTContext *Ctx = Result.Context;
 
   const TypeLoc* typedefUsingTypeLoc =
-    Result.Nodes.getNodeAs<clang::TypeLoc>("typedefUsingTypeLoc"); 
+    Result.Nodes.getNodeAs<clang::TypeLoc>("typedefUsingTypeLoc");
+  const TypeLoc* unelaboratedTagLoc =
+    Result.Nodes.getNodeAs<clang::TypeLoc>("unelaboratedTagLoc");
   const DeclStmt* declStmt =
-    Result.Nodes.getNodeAs<clang::DeclStmt>("declStmt"); 
+    Result.Nodes.getNodeAs<clang::DeclStmt>("declStmt");
   const TypedefType * TheTypedefType =
-    Result.Nodes.getNodeAs<clang::TypedefType>("typedefType"); 
+    Result.Nodes.getNodeAs<clang::TypedefType>("typedefType");
   const DeclRefExpr * sizeOfDeclRefExpr =
-    Result.Nodes.getNodeAs<clang::DeclRefExpr>("sizeOfDeclRefExpr"); 
+    Result.Nodes.getNodeAs<clang::DeclRefExpr>("sizeOfDeclRefExpr");
   const EnumDecl * enumDeclStmt =
-    Result.Nodes.getNodeAs<clang::EnumDecl>("enumDecl"); 
+    Result.Nodes.getNodeAs<clang::EnumDecl>("enumDecl");
 
-  if (typedefUsingTypeLoc) {       
-
-      const RecordType * TheRecordType = 
+  if (typedefUsingTypeLoc) {
+      const RecordType * TheRecordType =
           Result.Nodes.getNodeAs<clang::RecordType>("recordType");
-      const EnumType * TheEnumType = 
+      const EnumType * TheEnumType =
           Result.Nodes.getNodeAs<clang::EnumType>("enumType");
-      
+
       // return immediately if this is an unused record or enum type
       if (TheRecordType && !usedFunsAndTypes.typeIsSeen(TheRecordType) ||
-          TheEnumType && !usedFunsAndTypes.typeIsSeen(TheEnumType)) 
+          TheEnumType && !usedFunsAndTypes.typeIsSeen(TheEnumType))
         return;
 
       SourceLocation B = typedefUsingTypeLoc->getBeginLoc();
       SourceLocation E = typedefUsingTypeLoc->getEndLoc();
 
-      // T a, b; --> this generate two matches for two declarations: 
+      // T a, b; --> this generate two matches for two declarations:
       // once for both a and b. If we have replaced T once already,
       // we need to record it so we do not replace it again for b
       // however, if canon. T contained pointers, they should be prepended to b
-      if (editedLocations.insert(B).second) {  //second = T if inserted       
+      if (editedLocations.insert(B).second) {  //second = T if inserted
         auto canonicalType = // this does not get rid of some qualifiers
           QualType(TheTypedefType->getCanonicalTypeUnqualified());
 
         TypeCanoniserVisitor typeVisitor(*Ctx);
         typeVisitor.TraverseType(canonicalType); // gets rid of all qualifiers
 
-        bool isRecordWithKindName = true; // ignore if !TheRecordType
         std::string kindName = "";
-        if (TheRecordType || TheEnumType) {
-          if (TheRecordType) {
+        if (TheRecordType) {
             kindName = TheRecordType->getAsTagDecl()->getKindName().str();
-            isRecordWithKindName = !TheRecordType->getAsTagDecl()->getNameAsString().empty();
-          }
-          else {
+        } else if (TheEnumType) {
             kindName = "enum";
-            isRecordWithKindName = !TheEnumType->getAsTagDecl()->getNameAsString().empty();
-          }
         }
 
-        // this adds missing kind name if necessary, e.g. struct or union
-        std::string tagName = (!isRecordWithKindName ? (kindName + " ") : "");
+        std::string unqualName = typeVisitor.getUnqualifiedTypeName();
+        std::string tagName = "";
 
-        std::string completeTypeSpec = (tagName + 
-                                        typeVisitor.getUnqualifiedTypeName());
+        if (!kindName.empty()) {
+            std::string expectedPrefix = kindName + " ";
+            if (unqualName.find(expectedPrefix) != 0) {
+                tagName = expectedPrefix;
+            }
+        }
 
+        std::string completeTypeSpec = tagName + unqualName;
         rewriter.ReplaceText(SourceRange(B, E), completeTypeSpec);
+
+        // name the anonymous record or enum, so the canonised uses refer
+        // to a declared tag once the typedef is removed
+        const TagDecl *tagDecl = TheRecordType ? TheRecordType->getAsTagDecl()
+                               : TheEnumType ? TheEnumType->getAsTagDecl()
+                               : nullptr;
+        if (tagDecl && tagDecl->getNameAsString().empty() &&
+            editedLocations.insert(tagDecl->getBeginLoc()).second)
+          rewriter.InsertTextAfterToken(
+              tagDecl->getBeginLoc(),
+              " " + TheTypedefType->getDecl()->getNameAsString());
       }
-  } 
-  else if (declStmt) {
+  } else if (unelaboratedTagLoc) {
+    auto parents = Ctx->getParents(*unelaboratedTagLoc);
+    bool isWrapped = false;
+
+    SourceLocation insertLoc = unelaboratedTagLoc->getBeginLoc();
+
+    for (const auto& parent : parents) {
+      if (const TypeLoc* TL = parent.get<TypeLoc>()) {
+        if (auto ETL = TL->getAs<ElaboratedTypeLoc>()) { // already elaborated, skip
+          auto kw = ETL.getTypePtr()->getKeyword();
+          if (kw != ETK_None) {
+            isWrapped = true;
+          } else {
+            insertLoc = ETL.getBeginLoc();
+          }
+          break;
+        }
+      } else if (parent.get<CXXBaseSpecifier>() || // some cases where we do not want to elaborate, may not be exhaustive
+                 parent.get<CXXRecordDecl>() ||
+                 parent.get<NestedNameSpecifierLoc>() ||
+                 parent.get<NestedNameSpecifier>()) {
+          isWrapped = true;
+          break;
+      }
+    }
+
+    if (!isWrapped) {
+      // walk every ancestor chain, not just the first parent's
+      llvm::SmallVector<clang::DynTypedNode, 16> work(parents.begin(),
+                                                      parents.end());
+      unsigned steps = 0;
+      while (!work.empty() && !isWrapped && ++steps < 512) {
+        clang::DynTypedNode node = work.pop_back_val();
+        if (node.get<CXXThrowExpr>() ||
+            node.get<CXXDestructorDecl>() ||
+            node.get<CXXMemberCallExpr>()) {
+          isWrapped = true;
+          break;
+        }
+        auto nodeParents = Ctx->getParents(node);
+        work.append(nodeParents.begin(), nodeParents.end());
+      }
+    }
+
+    if (!isWrapped) { // need to elaborate the type
+      const RecordType* rt = Result.Nodes.getNodeAs<clang::RecordType>("directRecordType");
+      const EnumType* et = Result.Nodes.getNodeAs<clang::EnumType>("directEnumType");
+      TagDecl* tagDecl = nullptr;
+
+      if (rt) {
+        if (!usedFunsAndTypes.typeIsSeen(rt)) return;
+        tagDecl = rt->getDecl();
+      } else if (et) {
+        if (!usedFunsAndTypes.typeIsSeen(et)) return;
+        tagDecl = et->getDecl();
+      }
+
+      if (tagDecl && !tagDecl->getNameAsString().empty()) { // anonymous stuff
+        if (tagDecl->getLocation() == unelaboratedTagLoc->getBeginLoc()) return;
+
+        //SourceLocation B = unelaboratedTagLoc->getBeginLoc();
+
+        if (editedLocations.insert(insertLoc).second) {
+          std::string kindName = tagDecl->getKindName().str();
+          rewriter.InsertTextBefore(insertLoc, kindName + " ");
+        }
+      }
+    }
+  } else if (declStmt) {
     // this matcher cannot match unless decl is DeclaratorDecl
     auto it = declStmt->decl_begin();
     const DeclaratorDecl* firstDecl = static_cast<DeclaratorDecl*>(*it);
@@ -141,7 +220,7 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
     for (; it != declStmt->decl_end(); ++it) {
       const DeclaratorDecl* decl = static_cast<DeclaratorDecl*>(*it);
       //decl->dumpColor();
-      auto canonicalType = 
+      auto canonicalType =
         QualType(TheTypedefType->getCanonicalTypeUnqualified());
       TypeCanoniserVisitor typeVisitor(*Ctx);
       typeVisitor.TraverseType(canonicalType);
@@ -178,7 +257,7 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
         rewriter.InsertTextAfterToken(lastDecl->getSourceRange().getEnd(),"/*");
         rewriter.InsertTextBefore(next_loc, "*/");
       }
-      
+
     }
   }
   else {
@@ -204,7 +283,7 @@ bool TypeCanoniserVisitor::VisitType(clang::Type *typ) {
         unqualTypeName = "(";
         bool start = true;
         for (auto paramType : paramTypes) {
-          unqualTypeName = unqualTypeName + 
+          unqualTypeName = unqualTypeName +
           ((!start ? ", " : "") + paramType.getAsString());
           if (start) start = false;
         }
@@ -213,7 +292,7 @@ bool TypeCanoniserVisitor::VisitType(clang::Type *typ) {
       }
       else {
         unqualType = QualType(typ, 0);
-        unqualTypeName = unqualType.getAsString();   
+        unqualTypeName = unqualType.getAsString();
       }
     }
     return true;

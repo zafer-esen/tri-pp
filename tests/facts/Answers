@@ -1,0 +1,189 @@
+
+malloc_use.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: [free, malloc]
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+nothing_referenced.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+malloc_in_removed_decl.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+sized_array.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: true
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+unbounded_array_param.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: true
+usesUnboundedArrays: true
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+determinize_adds_arrays.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: [IN1_g]
+inputArrays: [IN_ARR_2_g]
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+determinize_with_own_arrays.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: true
+usesUnboundedArrays: true
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: [IN1_g]
+inputArrays: [IN_ARR_2_g]
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+time_tokens.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: true
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+
+exceptions.cpp
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: true
+usesTryCatch: true
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []

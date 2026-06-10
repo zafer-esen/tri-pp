@@ -10,13 +10,14 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 #include "Utilities.hpp"
 
 class UnusedDeclCommenterMatcher : 
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  UnusedDeclCommenterMatcher(clang::Rewriter &r, 
+  UnusedDeclCommenterMatcher(TrackedRewriter &r, 
                        UsedFunAndTypeCollector &usedFunsAndTypes) 
                        : rewriter(r), usedFunsAndTypes(usedFunsAndTypes) {}
   // this callback executes on a match
@@ -26,7 +27,7 @@ public:
   void onEndOfTranslationUnit() override{};
 
   private:
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   //llvm::SmallSet<const clang::Decl*, 32> commentedDecls;
   // or
   //llvm::SmallSet<const clang::Decl*, 32> commentedLines;
@@ -35,20 +36,20 @@ public:
 
 class UnusedDeclCommenterASTConsumer : public clang::ASTConsumer {
 public:
-  UnusedDeclCommenterASTConsumer(clang::Rewriter &r, 
+  UnusedDeclCommenterASTConsumer(TrackedRewriter &r, 
                            UsedFunAndTypeCollector &usedFunsAndTypes);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override {
     finder.matchAST(Ctx);
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   std::unique_ptr<UnusedDeclCommenterMatcher> handler;
 };
 
 // collects all seen functions and types on construction
 class UnusedDeclCommenter {
 public:
-  UnusedDeclCommenter(clang::Rewriter &r, clang::ASTContext &Ctx, 
+  UnusedDeclCommenter(TrackedRewriter &r, clang::ASTContext &Ctx, 
                       UsedFunAndTypeCollector &usedFunsAndTypes);
 };

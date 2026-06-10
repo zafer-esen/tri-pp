@@ -8,12 +8,13 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 
 class TypedefMatcher : 
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  TypedefMatcher(clang::Rewriter &rewriter, 
+  TypedefMatcher(TrackedRewriter &rewriter, 
     UsedFunAndTypeCollector &usedFunsAndTypes) : rewriter(rewriter), 
                                           usedFunsAndTypes(usedFunsAndTypes) {}
   // this callback executes on a match
@@ -23,28 +24,28 @@ public:
   void onEndOfTranslationUnit() override{};
 
   private:
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   llvm::SmallSet<clang::SourceLocation, 32> EditedLocations;
   UsedFunAndTypeCollector &usedFunsAndTypes;
 };
 
 class TypedefRemoverASTConsumer : public clang::ASTConsumer {
 public:
-  TypedefRemoverASTConsumer(clang::Rewriter &rewriter,
+  TypedefRemoverASTConsumer(TrackedRewriter &rewriter,
                             UsedFunAndTypeCollector &usedFunsAndTypes);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override {
     finder.matchAST(Ctx);
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   TypedefMatcher handler;
 };
 
 // collects all seen functions and types on construction
 class TypedefRemover {
   public:
-  TypedefRemover(clang::Rewriter &rewriter, clang::ASTContext &Ctx, 
+  TypedefRemover(TrackedRewriter &rewriter, clang::ASTContext &Ctx, 
                  UsedFunAndTypeCollector &usedFunsAndTypes) {
     TypedefRemoverASTConsumer c(rewriter, usedFunsAndTypes);
     c.HandleTranslationUnit(Ctx);

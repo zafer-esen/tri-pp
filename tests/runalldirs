@@ -21,6 +21,10 @@ run_test() {
 run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/unused_decl_commenter" "" "-q"
 run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/typedef_remover" "" "-q"
 run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/program_transformations" "" "-q"
+run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/rewrite_conflicts" "" "-q"
+run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/line_markers" "" "-q"
+run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/facts" "" "-q"
+run_test "$SCRIPT_DIR/rundir" "$SCRIPT_DIR/cpp_support" "" "-q"
 
 if [ $ERRORS -ne 0 ]; then
     exit 1

@@ -10,13 +10,14 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 #include "Utilities.hpp"
 
 class ForLoopStmtExtractorMatcher : 
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  ForLoopStmtExtractorMatcher(clang::Rewriter &r, 
+  ForLoopStmtExtractorMatcher(TrackedRewriter &r, 
                        UsedFunAndTypeCollector &usedFunsAndTypes) 
                        : rewriter(r), usedFunsAndTypes(usedFunsAndTypes) {}
   // this callback executes on a match
@@ -26,25 +27,25 @@ public:
   void onEndOfTranslationUnit() override{};
 
   private:
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   UsedFunAndTypeCollector &usedFunsAndTypes;
 };
 
 class ForLoopStmtExtractorASTConsumer : public clang::ASTConsumer {
 public:
-  ForLoopStmtExtractorASTConsumer(clang::Rewriter &r, 
+  ForLoopStmtExtractorASTConsumer(TrackedRewriter &r, 
                            UsedFunAndTypeCollector &usedFunsAndTypes);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override {
     finder.matchAST(Ctx);
   }
 private:
   clang::ast_matchers::MatchFinder finder;
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   std::unique_ptr<ForLoopStmtExtractorMatcher> handler;
 };
 
 class ForLoopStmtExtractor {
 public:
-  ForLoopStmtExtractor(clang::Rewriter &r, clang::ASTContext &Ctx, 
+  ForLoopStmtExtractor(TrackedRewriter &r, clang::ASTContext &Ctx, 
                        UsedFunAndTypeCollector &usedFunsAndTypes);
 };

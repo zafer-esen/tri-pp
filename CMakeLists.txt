@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(tricera-preprocessors)
-set(PROJECT_VERSION "0.2.0")
+set(PROJECT_VERSION "0.3.0")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp")
 
@@ -34,11 +34,15 @@ set(TRICERA_TOOLS
 
 set(tri-pp_SOURCES
   TriceraPreprocessorMain.cpp
+  lib/TrackedRewriter.cpp
+  lib/LineMarkerEmitter.cpp
+  lib/FactsCollector.cpp
   lib/TriceraPreprocessor.cpp
   lib/UsedFunctionAndTypeCollector.cpp
   lib/TypedefRemover.cpp
   lib/UnusedDeclCommenter.cpp
   lib/TypeCanoniser.cpp
+  lib/CXXToCPlusTranslator.cpp
   lib/ForLoopStmtExtractor.cpp
   lib/CharRewriter.cpp
   lib/Utilites.cpp

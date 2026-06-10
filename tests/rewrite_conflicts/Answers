@@ -1,0 +1,36 @@
+
+guard_copy_canonised.c
+/* NondetLoopGuardRewriter copies the guard into the counter
+   initialisation and blanks the original; a later round canonises the
+   sizeof inside the copy like any other code. */
+extern int nondet(int);
+
+int main() {
+  int *p;
+  int n = 0;
+  { int __loop_idx_0 = nondet(sizeof(int)); while (__loop_idx_0-->0                 ) {
+    n++;
+  } }
+  return n;
+}
+exit code: 0
+
+conflict_nested_nondet.c
+[tricera-preprocessor] error: 1 conflicting rewrite pair(s) detected, output not written
+conflict 1:
+  [Determinizer] replacement at line 9:11 (offsets 342-362): "IN1_g"
+  [Determinizer] replacement at line 9:20 (offsets 351-361): "IN2_g"
+exit code: 4
+
+clean_no_conflict.c
+/* Same shape without the nested rewrite: no conflict, output written. */
+extern int nondet(void);
+
+int main() {
+  int n = 0;
+  { int __loop_idx_0 = nondet(); while (__loop_idx_0-->0        ) {
+    n++;
+  } }
+  return n;
+}
+exit code: 0

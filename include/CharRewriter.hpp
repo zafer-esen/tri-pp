@@ -10,13 +10,14 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 #include "Utilities.hpp"
 
 class CharRewriterMatcher : 
   public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  CharRewriterMatcher(clang::Rewriter &r, 
+  CharRewriterMatcher(TrackedRewriter &r, 
                        UsedFunAndTypeCollector &usedFunsAndTypes) 
                        : rewriter(r), usedFunsAndTypes(usedFunsAndTypes) {}
   // this callback executes on a match
@@ -26,13 +27,13 @@ public:
   void onEndOfTranslationUnit() override{};
 
   private:
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   UsedFunAndTypeCollector &usedFunsAndTypes;
 };
 
 class CharRewriterASTConsumer : public clang::ASTConsumer {
 public:
-  CharRewriterASTConsumer(clang::Rewriter &r, 
+  CharRewriterASTConsumer(TrackedRewriter &r, 
                            UsedFunAndTypeCollector &usedFunsAndTypes);
   void HandleTranslationUnit(clang::ASTContext &Ctx) override {
     finder.matchAST(Ctx);
@@ -40,11 +41,11 @@ public:
 private:
   clang::ast_matchers::MatchFinder finder;
   std::unique_ptr<CharRewriterMatcher> handler;
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
 };
 
 class CharRewriter {
 public:
-  CharRewriter(clang::Rewriter &r, clang::ASTContext &Ctx, 
+  CharRewriter(TrackedRewriter &r, clang::ASTContext &Ctx, 
                UsedFunAndTypeCollector &usedFunsAndTypes);
 };

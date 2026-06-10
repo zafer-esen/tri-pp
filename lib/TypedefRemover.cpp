@@ -19,7 +19,7 @@ using namespace clang;
 using namespace ast_matchers;
 using namespace llvm;
 
-TypedefRemoverASTConsumer::TypedefRemoverASTConsumer(clang::Rewriter &r,
+TypedefRemoverASTConsumer::TypedefRemoverASTConsumer(TrackedRewriter &r,
                                    UsedFunAndTypeCollector & usedFunsAndTypes):
                                     rewriter(r), handler(r, usedFunsAndTypes) {
   DeclarationMatcher typedefDeclMatcher = anyOf(
@@ -140,29 +140,22 @@ void TypedefMatcher::run(const MatchFinder::MatchResult &Result) {
     if (TheRecordType) declName = TheRecordType->getDecl()->getNameAsString();
     else if (TheEnumType) declName = TheEnumType->getDecl()->getNameAsString();
     else llvm_unreachable("");
-    // comment out / remove the typedef keyword and
-    // end the comment right before record declaration starts
-    wrapWithCComment(SourceRange(TypeDefBeginLoc, RecordDeclBeginLoc),
-                     rewriter);
+    // remove the typedef keyword up to where the record declaration starts
+    rewriter.BlankChars(TypeDefBeginLoc, RecordDeclBeginLoc);
 
-    // comment out / remove the typedef names right after the record
-    // end the comment right before the semicolon
-    wrapWithCComment(SourceRange(
-      RecordDeclEndLoc, TypeDefEndLoc.getLocWithOffset(-1)),
-                     rewriter, false);
+    // remove the typedef names between the record declaration and the
+    // semicolon
+    rewriter.BlankChars(
+      Lexer::getLocForEndOfToken(RecordDeclEndLoc, 0, Ctx->getSourceManager(),
+                                 Ctx->getLangOpts()),
+      TypeDefEndLoc.getLocWithOffset(-1));
 
     // copies x in "typedef struct {} x" to right after "struct" if missing
     if(declName.empty())
       rewriter.InsertTextAfterToken(RecordDeclBeginLoc,
         (" " + TheTypedefDecl->getNameAsString()));
   } else { // if typedef does not contain a record declaration
-    // comment it out (or alternatively remove it)
-    //llvm::outs()<<"commenting out decl\n";
-    //lastDecl->dump();
-    doubleSlashCommentOutDeclaration(lastDecl, *Ctx, rewriter);
-
-    //rewriter.InsertTextBefore(TypeDefBeginLoc, "/* ");
-    //rewriter.InsertTextAfterToken(TypeDefEndLoc, " */");
-    //rewriter.RemoveText(SourceRange(TypeDefBeginLoc,TypeDefEndLoc.getLocWithOffset(-1)));
+    // remove it
+    blankOutDeclaration(lastDecl, *Ctx, rewriter);
   }
 }

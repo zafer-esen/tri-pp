@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# Verification harness for --line-markers (see check_markers.py):
+#  - every probe_ token in the output maps back to its authentic original
+#    line through the emitted markers (the map is built exactly like the
+#    TriCera-side consumer builds it);
+#  - line-count-preserving inputs produce zero markers;
+#  - stripping marker lines (blank-padding them) leaves a file gcc can
+#    still parse.
+
+check() {
+    name=$1; shift
+    expect=$1; shift
+    echo
+    echo "$name"
+    $TRI_CMD "$@" "$name" -o "Output.$name" -- -xc 2>&1
+    echo "tri-pp exit code: $?"
+    python3 check_markers.py "$name" "Output.$name" $expect
+    echo "checker exit code: $?"
+    sed 's/^#[ \t]*[0-9].*$//' "Output.$name" > "Output.$name.stripped"
+    if gcc -fsyntax-only -x c "Output.$name.stripped" 2>/dev/null; then
+        echo "parse-equivalence: PASS"
+    else
+        echo "parse-equivalence: FAIL"
+    fi
+    rm -f "Output.$name" "Output.$name.stripped"
+}
+
+check geometry_preserving.c --expect-zero-markers "$@" --line-markers
+check clone_functions.c     ""                    "$@" --line-markers --make-calls-unique
+check determinize_top.c     ""                    "$@" --line-markers --determinize
+check multiline_for.c       ""                    "$@" --line-markers
+check chained_markers.c     ""                    "$@" --line-markers
+
+# ACSL annotations must pass through byte-identical, with no marker line
+# inside a multi-line annotation, and text inside them must keep mapping to
+# the original lines.
+echo
+echo acsl_annotations.c
+$TRI_CMD "$@" --line-markers --make-calls-unique acsl_annotations.c -o Output.acsl.c -- -xc 2>&1
+echo "tri-pp exit code: $?"
+python3 check_markers.py acsl_annotations.c Output.acsl.c
+echo "checker exit code: $?"
+awk '/\/\*@/,/@\*\//' acsl_annotations.c > Output.acsl.expected
+if [ "$(grep -Fx -c -f Output.acsl.expected Output.acsl.c)" = "$(wc -l < Output.acsl.expected)" ]; then
+    echo "ACSL byte-identical: PASS"
+else
+    echo "ACSL byte-identical: FAIL"
+fi
+if awk '/\/\*@/{inb=1} inb && /^#/{found=1} /@\*\//{inb=0} END{exit !found}' Output.acsl.c; then
+    echo "no marker inside ACSL: FAIL"
+else
+    echo "no marker inside ACSL: PASS"
+fi
+rm -f Output.acsl.c Output.acsl.expected
+
+# TriCera invokes tri-pp up to three times in a row for --determinize, each
+# stage reading the previous stage's output from the same path; the markers
+# must keep mapping every line to the first stage's input.
+echo
+echo "chained stages (determinize_top.c)"
+cp determinize_top.c Output.chain.c
+for flags in "" "--make-calls-unique" "--determinize"; do
+    $TRI_CMD "$@" --line-markers $flags Output.chain.c -o Output.chain.step -- -xc 2>&1
+    echo "tri-pp exit code: $?"
+    mv Output.chain.step Output.chain.c
+done
+python3 check_markers.py determinize_top.c Output.chain.c --alias=Output.chain.c
+echo "checker exit code: $?"
+rm -f Output.chain.c Output.chain.step
+
+# A C++ template file: the instantiation injected by the C++ round shifts
+# the lines after it; the probe_ names in the non-template code must still
+# map to their original lines. (-xc++; template-interior names map only
+# approximately, by contract, so none are placed there.)
+echo
+echo cxx_templates.cpp
+$TRI_CMD "$@" --line-markers cxx_templates.cpp -o Output.cxx.cpp -- -xc++ 2>&1
+echo "tri-pp exit code: $?"
+python3 check_markers.py cxx_templates.cpp Output.cxx.cpp
+echo "checker exit code: $?"
+rm -f Output.cxx.cpp

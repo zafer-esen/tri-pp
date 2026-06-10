@@ -2,6 +2,7 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "TrackedRewriter.hpp"
 #include "ExecutionCountAnalyzer.hpp"
 #include <string>
 #include <vector>
@@ -16,15 +17,19 @@ struct UnboundedInputInfo {
 
 class Determinizer {
 public:
-    Determinizer(clang::Rewriter &R, clang::ASTContext &Ctx,
+    Determinizer(TrackedRewriter &R, clang::ASTContext &Ctx,
                  const ExecutionCountAnalyzer &Analyzer);
+
+    // inputs that were added to the program by this pass
+    std::vector<std::string> addedInputVariables() const;
+    std::vector<std::string> addedInputArrays() const;
 
 private:
     friend class DeterminizerVisitor;
 
     void run();
 
-    clang::Rewriter &TheRewriter;
+    TrackedRewriter &TheRewriter;
     clang::ASTContext &Context;
     const ExecutionCountAnalyzer &ExecAnalyzer;
 

@@ -1,25 +1,17 @@
 #pragma once
 
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "TrackedRewriter.hpp"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
 
-// comments out the passed declaration using double slash comments
-// todo: if there is another declaration in the same line, move it
-bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration, 
-                                       clang::ASTContext &ctx,
-                                       clang::Rewriter& rewriter);
-
-// comments out the passed range with C-style comments (i.e. /*...*/)
-// does not check if the range already contains C-style comments, which
-// might lead to errors if they exist
-// insertBeforeBegin and insertBefore end determine where the comments will
-// be inserted w.r.t. the source beginning and end locations
-void wrapWithCComment (clang::SourceRange sourceRange,
-                       clang::Rewriter& rewriter,
-                       bool insertBeforeBegin = true,
-                       bool insertBeforeEnd = true);        
+// removes the declaration by blanking it out, together with a trailing
+// semicolon and a preceding stand-alone __extension__ line.
+// returns false if the declaration is not in the main file.
+bool blankOutDeclaration (const clang::Decl* declaration,
+                          clang::ASTContext &ctx,
+                          TrackedRewriter& rewriter);
 
 // This visitor is used to recursively traverse types
 // and extract the underlying type free of pointers and qualifiers

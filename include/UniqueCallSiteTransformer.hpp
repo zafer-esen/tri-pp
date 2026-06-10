@@ -3,6 +3,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/DenseMap.h"
+#include "TrackedRewriter.hpp"
 #include "UsedFunctionAndTypeCollector.hpp"
 
 #include <map>
@@ -10,7 +11,7 @@
 
 class UniqueCallTransformer {
 public:
-  UniqueCallTransformer(clang::Rewriter &R, clang::ASTContext &Ctx,
+  UniqueCallTransformer(TrackedRewriter &R, clang::ASTContext &Ctx,
                                     const UsedFunAndTypeCollector &U);
 
   void transform();
@@ -34,7 +35,7 @@ private:
   // name of the cloned function.
   std::string getOrCreateClone(const clang::FunctionDecl *FD);
 
-  clang::Rewriter &rewriter;
+  TrackedRewriter &rewriter;
   clang::ASTContext &Ctx;
   const UsedFunAndTypeCollector &usedFunsAndTypes;
 

@@ -7,13 +7,9 @@
 #include "clang/Lex/Lexer.h"
 #include "clang/AST/PrettyPrinter.h"
 
-// todo: does not take into account possible declarations in the same line
-// maybe switch to C-style /*...*/ comments in that case?
-// another option might be to insert a new line after each declaration,
-// but this would change line numbers
-bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration,
-                                       clang::ASTContext &ctx,
-                                       clang::Rewriter& rewriter) {
+bool blankOutDeclaration (const clang::Decl* declaration,
+                          clang::ASTContext &ctx,
+                          TrackedRewriter& rewriter) {
     clang::SourceManager &SM = ctx.getSourceManager();
 
     clang::FullSourceLoc B_full = ctx.getFullLoc(declaration->getBeginLoc());
@@ -22,9 +18,13 @@ bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration,
     // return if this declaration is not in the main file
     if (B_full.isInvalid() || B_full.getFileID() != SM.getMainFileID())
         return false;
+    if (E_full.isInvalid())
+        return false;
 
+    clang::SourceLocation beginLoc = declaration->getBeginLoc();
+
+    // cover a stand-alone __extension__ on the preceding line
     unsigned int startLineNum = B_full.getLineNumber();
-
     if (startLineNum > 1) {
         unsigned int prevLineNum = startLineNum - 1;
 
@@ -36,31 +36,19 @@ bool doubleSlashCommentOutDeclaration (const clang::Decl* declaration,
             llvm::StringRef prevLineText = restOfFile.substr(0, restOfFile.find_first_of("\r\n"));
 
             if (prevLineText.trim() == "__extension__") {
-                startLineNum = prevLineNum;
+                beginLoc = prevLineStartLoc;
             }
         }
     }
 
-    for (unsigned i = startLineNum; i <= E_full.getLineNumber(); ++i) {
-        clang::SourceLocation lineStart = SM.translateLineCol(SM.getMainFileID(), i, 1);
-        if(lineStart.isInvalid()) continue;
-        rewriter.InsertText(lineStart, "// ");
-    }
-    return true;
-}
-
-void wrapWithCComment (clang::SourceRange sourceRange,
-                       clang::Rewriter& rewriter,
-                       bool insertBeforeBegin,
-                       bool insertBeforeEnd){
-  if(insertBeforeBegin)
-    rewriter.InsertTextBefore(sourceRange.getBegin(), "/* ");
-  else
-    rewriter.InsertTextAfterToken(sourceRange.getBegin(), "/* ");
-  if(insertBeforeEnd)
-    rewriter.InsertTextBefore(sourceRange.getEnd(), " */ ");
-  else
-    rewriter.InsertTextAfterToken(sourceRange.getEnd(), " */ ");
+    // cover the trailing semicolon if there is one
+    clang::SourceLocation afterSemiLoc = clang::Lexer::findLocationAfterToken(
+        declaration->getEndLoc(), clang::tok::semi, SM, ctx.getLangOpts(),
+        /*SkipTrailingWhitespaceAndNewLine=*/false);
+    if (afterSemiLoc.isValid())
+        return !rewriter.BlankChars(beginLoc, afterSemiLoc);
+    return !rewriter.BlankText(clang::SourceRange(beginLoc,
+                                                  declaration->getEndLoc()));
 }
 
 bool BaseTypeExtractor::VisitType(clang::Type *typ) {
