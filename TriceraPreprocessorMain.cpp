@@ -255,6 +255,13 @@ int main(int argc, const char **argv) {
   signal(SIGILL, immediate_exit_handler);
   signal(SIGFPE, immediate_exit_handler);
 
+  // -v must work without positional arguments
+  for (int i = 1; i < argc; ++i)
+    if (strcmp(argv[i], "-v") == 0) {
+      outs() << "tricera-preprocessor v" TRI_PP_VERSION << "\n";
+      return 0;
+    }
+
   try {
     auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv, TPCategory);
     if (!OptionsParser) {
@@ -267,11 +274,6 @@ int main(int argc, const char **argv) {
       return 0;
     }
     CommonOptionsParser &Parser = *OptionsParser;
-    if (dispVer)
-    {
-      outs() << "tricera-preprocessor v" TRI_PP_VERSION << "\n";
-      return 0;
-    }
 
     // suppress stderr output
     int fd = -1, n = -1;
