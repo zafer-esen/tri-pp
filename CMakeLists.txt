@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(tricera-preprocessors)
-set(PROJECT_VERSION "0.3.0")
+set(PROJECT_VERSION "0.4.0")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp")
 
@@ -18,8 +18,8 @@ include_directories(
 #===============================================================================
 # 2. TRICERA PREPROCESSOR BUILD CONFIGURATION
 #===============================================================================
-# Use the same C++ standard as LLVM does
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
+# Use the same C++ standard as LLVM does (LLVM >= 16 headers require C++17)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 
 #if(NOT CMAKE_BUILD_TYPE)
 #    set(CMAKE_BUILD_TYPE Release)
@@ -54,6 +54,29 @@ set(tri-pp_SOURCES
 
 # CONFIGURATION
 # ===================
+# LLVMSupport needs terminfo (setupterm etc.) for terminal color detection.
+# On macOS the system libncurses is stable across machines and is linked
+# dynamically; on Linux libtinfo.a is linked statically, since a dynamic
+# libtinfo would tie the shipped binary to the build host's distro.
+if(APPLE)
+  find_library(TERMINFO_LIBRARY NAMES ncurses curses)
+  # the macOS LLVM prebuilt enables zstd compression in LLVMSupport; link the
+  # static libzstd.a (from Homebrew) so the binary has no Homebrew runtime dep
+  find_library(ZSTD_STATIC_LIBRARY NAMES libzstd.a
+    HINTS /opt/homebrew/opt/zstd/lib /usr/local/opt/zstd/lib)
+  if(NOT ZSTD_STATIC_LIBRARY)
+    message(FATAL_ERROR "static libzstd.a not found; brew install zstd")
+  endif()
+else()
+  set(SAVED_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  find_library(TERMINFO_LIBRARY NAMES tinfo ncurses)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${SAVED_FIND_LIBRARY_SUFFIXES})
+  if(NOT TERMINFO_LIBRARY)
+    message(FATAL_ERROR "static terminfo (libtinfo.a/libncurses.a) not found; install libncurses-dev")
+  endif()
+endif()
+
 foreach( tool ${TRICERA_TOOLS} )
 # Create a library/executable corresponding to 'plugin'
     add_executable(
@@ -84,6 +107,8 @@ endif()
       dl
       pthread
       z
+      ${TERMINFO_LIBRARY}
+      ${ZSTD_STATIC_LIBRARY}
     )
 
 # Configure include directories for 'tool'

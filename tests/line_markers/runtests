@@ -42,7 +42,8 @@ echo "tri-pp exit code: $?"
 python3 check_markers.py acsl_annotations.c Output.acsl.c
 echo "checker exit code: $?"
 awk '/\/\*@/,/@\*\//' acsl_annotations.c > Output.acsl.expected
-if [ "$(grep -Fx -c -f Output.acsl.expected Output.acsl.c)" = "$(wc -l < Output.acsl.expected)" ]; then
+# $(( )) normalizes the counts: BSD wc -l pads with spaces, GNU wc does not
+if [ "$(($(grep -Fx -c -f Output.acsl.expected Output.acsl.c)))" = "$(($(wc -l < Output.acsl.expected)))" ]; then
     echo "ACSL byte-identical: PASS"
 else
     echo "ACSL byte-identical: FAIL"

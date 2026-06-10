@@ -152,10 +152,17 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
       if (const TypeLoc* TL = parent.get<TypeLoc>()) {
         if (auto ETL = TL->getAs<ElaboratedTypeLoc>()) { // already elaborated, skip
           auto kw = ETL.getTypePtr()->getKeyword();
-          if (kw != ETK_None) {
+          if (kw != clang::ElaboratedTypeKeyword::None) {
             isWrapped = true;
           } else {
             insertLoc = ETL.getBeginLoc();
+            for (const auto& gp : Ctx->getParents(parent)) {
+              if (gp.get<CXXBaseSpecifier>() || gp.get<CXXRecordDecl>() ||
+                  gp.get<NestedNameSpecifierLoc>() || gp.get<NestedNameSpecifier>()) {
+                isWrapped = true;
+                break;
+              }
+            }
           }
           break;
         }

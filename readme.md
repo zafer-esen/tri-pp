@@ -2,16 +2,33 @@
 
 A clang tool to preprocess C files before feeding them to TriCera.
 
-A build script (mk) is provided for Linux, which first downloads the prebuilt LLVM dependency, then builds the project against it, finally producing a static binary. Alternatively, the tool can be built using a Docker image; see the included `Dockerfile` and `docker-build.sh` scripts.
+A build script (mk) is provided, which first downloads the prebuilt LLVM
+dependency (LLVM 18.1.8), then builds the project against it, bundling the
+needed LLVM/clang static libraries into the executable `tri-pp`.
 
-Supported OS: Linux, macOS
+On Linux the build must run inside the pinned Ubuntu 18.04 image (use
+`docker-build.sh`, which builds the included `Dockerfile`): the prebuilt LLVM
+static libraries were compiled with that era's libstdc++, and building against
+a newer one produces an ABI mismatch that crashes the binary as soon as it
+calls into libclang. The old glibc baseline also makes the resulting binary
+run on a wide range of Linux systems. On macOS the build runs natively with
+Apple's clang and `libtool` (`./mk`).
+
+Supported OS / architectures: Linux x86_64, Linux arm64, macOS arm64. Intel
+macOS (x86_64) has no native LLVM 18.1.8 package and is not currently built;
+Windows users can run the Linux x86_64 binary under WSL. Prebuilt binaries are
+attached to the GitHub releases (`tri-pp-linux-x64`, `tri-pp-linux-arm64`,
+`tri-pp-macos-arm64`).
 
 # Usage
 `./tri-pp --help` to see version number and usage information of the tool.
 
 # Building
-The build uses `cmake`, and depends on a few packages (`zlib1g-dev`, `libtool-bin`, and possibly others). If everything is set up correctly, call `./mk` to build and produce the executable `tri-pp`.
-If you installed LLVM-13 but `mk` complains that it cannot find the header files, 
+The build uses `cmake`. The LLVM 18.1.8 dependency is downloaded automatically;
+the only system packages needed are `zlib1g-dev` and `libncurses-dev` (the
+latter provides the static `libtinfo.a` that LLVM's terminal-colour detection
+links). On Linux run `./docker-build.sh` (which builds in the Ubuntu 18.04
+container described above); on macOS run `./mk` directly.
 
 You can also have a look at the GitHub Action file at `.github/workflows` for the build setup on supported OS.
 

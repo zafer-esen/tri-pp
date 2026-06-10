@@ -12,8 +12,11 @@ TESTS="typedef_removal.c \
        multi_typedef.c \
        anonymous_struct_typedef.c"
 
+# -Wno-everything mirrors how TriCera invokes tri-pp; newer clang otherwise
+# promotes e.g. implicit-int (seen in intermediate rounds of the anonymous
+# typedef test) to a hard error
 for name in $TESTS; do
     echo
     echo $name
-    $TRI_CMD "$@" $name -- -xc 2>&1
+    $TRI_CMD "$@" $name -- -xc -Wno-everything 2>&1
 done
