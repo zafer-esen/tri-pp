@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# C++ lowering: templates are monomorphised, their uses replaced by mangled
+# names, member accesses qualified, throw operands cast. The mangled-name
+# map goes into the facts sidecar. Each test dumps the preprocessed output
+# and the mangledNames section of the facts file.
+
+TESTS="inheritance_multiple.cpp \
+       namespaces_nested.cpp \
+       templates_basic.cpp \
+       templates_complex.cpp \
+       templates_typedef.cpp \
+       elab_type_simple.cpp \
+       elab_type_nested_classes.cpp \
+       access_member_vars.cpp \
+       throw_test.cpp \
+       throw_with_cast.cpp \
+       qualified_function_calls.cpp"
+
+for name in $TESTS; do
+    echo
+    echo "--- $name ---"
+    FACTS_TMP=$(mktemp)
+    $TRI_CMD "$@" --facts "$FACTS_TMP" "$name" -- -xc++ 2>&1
+    echo "--- mangledNames ---"
+    sed -n '/^mangledNames:/,$p' "$FACTS_TMP"
+    rm -f "$FACTS_TMP"
+done

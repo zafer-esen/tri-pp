@@ -40,9 +40,12 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
   
   StatementMatcher CallSiteOrDeclRefMatcher = anyOf(
   callExpr(
-    hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
+    hasAncestor(functionDecl(hasName(funDecl->getNameAsString())).bind("enclosing")),
     callee(functionDecl().bind("callee"))).bind("caller"),
-    declRefExpr(allOf(hasAncestor(functionDecl(hasName(funDecl->getName())).bind("enclosing")),
+  cxxMemberCallExpr(
+    hasAncestor(functionDecl(hasName(funDecl->getNameAsString())).bind("enclosing")),
+    callee(cxxMethodDecl().bind("callee"))).bind("caller"),
+    declRefExpr(allOf(hasAncestor(functionDecl(hasName(funDecl->getNameAsString())).bind("enclosing")),
     anyOf(
        allOf(
          unless(anyOf(hasType(functionProtoType()),
@@ -60,7 +63,8 @@ void handleFunDecl(const clang::FunctionDecl* funDecl,
   TypeLocMatcher usedTypesMatcher = typeLoc(
     loc(qualType().bind("usedType")), 
     hasAncestor(expr()), // this ensures that the type is used in an expr.
-    hasAncestor(functionDecl(hasName(funDecl->getName())))).bind("usedTypeLoc");
+    hasAncestor(functionDecl(hasName(funDecl->getNameAsString())))
+  ).bind("usedTypeLoc");
 
   clang::ast_matchers::MatchFinder finder;
   finder.addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, CallSiteOrDeclRefMatcher), handler);
@@ -153,10 +157,10 @@ void FindFunctionMatcher::run(const MatchFinder::MatchResult &Result) {
   } else if (CalleeDecl) { // matched a CallExpr
     //llvm::outs() << EnclosingDecl->getNameAsString() << "\n";
    
-    assert(declaresSameEntity(TheCall->getDirectCallee(), CalleeDecl));
+    assert(TheCall->getDirectCallee() == nullptr || declaresSameEntity(TheCall->getDirectCallee(), CalleeDecl));
 
-    // todo: maybe detect mutually recursive funs, or recursion afterseveral steps
-    bool functionIsRecursive = declaresSameEntity(CalleeDecl, EnclosingDecl);
+    // todo: maybe detect mutually recursive funs, or recursion after several steps
+    bool functionIsRecursive = (EnclosingDecl && declaresSameEntity(CalleeDecl, EnclosingDecl));
     
     bool functionSeenBefore = false;
     if (std::find(ignoredFuns.begin(), ignoredFuns.end(), 

@@ -81,7 +81,8 @@ bool TrackedRewriter::InsertText(SourceLocation Loc, StringRef Str,
   return false;
 }
 
-bool TrackedRewriter::InsertTextAfterToken(SourceLocation Loc, StringRef Str) {
+bool TrackedRewriter::InsertTextAfterToken(SourceLocation Loc, StringRef Str,
+                                           unsigned originLine) {
   if (!Rewriter::isRewritable(Loc))
     return true;
   unsigned tokLen = Lexer::MeasureTokenLength(Loc, rewriter.getSourceMgr(),
@@ -89,7 +90,7 @@ bool TrackedRewriter::InsertTextAfterToken(SourceLocation Loc, StringRef Str) {
   if (rewriter.InsertTextAfterToken(Loc, Str))
     return true;
   recordAt(Loc, tokLen, TrackedEdit::Kind::INSERTION, 0, Str,
-           /*insertAfter=*/true);
+           /*insertAfter=*/true, originLine);
   return false;
 }
 

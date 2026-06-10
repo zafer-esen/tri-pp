@@ -55,3 +55,10 @@ tri-pp exit code: 0
 PASS: probe_acc -> determinize_top.c:7, determinize_top.c:9, determinize_top.c:12
 PASS: probe_x -> determinize_top.c:6, determinize_top.c:8, determinize_top.c:10
 checker exit code: 0
+
+cxx_templates.cpp
+tri-pp exit code: 0
+PASS: probe_a -> cxx_templates.cpp:22, cxx_templates.cpp:23, cxx_templates.cpp:24
+PASS: probe_arg -> cxx_templates.cpp:16, cxx_templates.cpp:17
+PASS: probe_b -> cxx_templates.cpp:23, cxx_templates.cpp:24
+checker exit code: 0

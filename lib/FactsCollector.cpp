@@ -199,5 +199,15 @@ bool writeFacts(StringRef path, const ProgramFacts &facts,
   out << "clockTokenSeen: " << (clockTokenSeen ? "true" : "false") << "\n";
   out << "durationTokenSeen: "
       << (durationTokenSeen ? "true" : "false") << "\n";
+  out << "# C++ names introduced by template instantiation, and what they"
+         " stand for\n";
+  if (facts.mangledNames.empty())
+    out << "mangledNames: []\n";
+  else {
+    out << "mangledNames:\n";
+    for (size_t i = 0; i < facts.mangledNames.size(); ++i)
+      out << "  - mangled: " << facts.mangledNames[i].mangled << "\n"
+          << "    original: \"" << facts.mangledNames[i].original << "\"\n";
+  }
   return true;
 }

@@ -42,6 +42,7 @@ set(tri-pp_SOURCES
   lib/TypedefRemover.cpp
   lib/UnusedDeclCommenter.cpp
   lib/TypeCanoniser.cpp
+  lib/CXXToCPlusTranslator.cpp
   lib/ForLoopStmtExtractor.cpp
   lib/CharRewriter.cpp
   lib/Utilites.cpp

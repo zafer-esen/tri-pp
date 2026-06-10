@@ -17,6 +17,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 nothing_referenced.c
 exit code: 0
@@ -36,6 +38,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 malloc_in_removed_decl.c
 exit code: 0
@@ -55,6 +59,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 sized_array.c
 exit code: 0
@@ -74,6 +80,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 unbounded_array_param.c
 exit code: 0
@@ -93,6 +101,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 determinize_adds_arrays.c
 exit code: 0
@@ -112,6 +122,8 @@ inputArrays: [IN_ARR_2_g]
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 determinize_with_own_arrays.c
 exit code: 0
@@ -131,6 +143,8 @@ inputArrays: [IN_ARR_2_g]
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 time_tokens.c
 exit code: 0
@@ -150,6 +164,8 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: true
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
 
 exceptions.cpp
 exit code: 0
@@ -169,3 +185,5 @@ inputArrays: []
 # clock/duration are TriCera keywords; reported when the token appears
 clockTokenSeen: false
 durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []

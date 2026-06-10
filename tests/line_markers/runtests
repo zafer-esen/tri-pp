@@ -68,3 +68,15 @@ done
 python3 check_markers.py determinize_top.c Output.chain.c --alias=Output.chain.c
 echo "checker exit code: $?"
 rm -f Output.chain.c Output.chain.step
+
+# A C++ template file: the instantiation injected by the C++ round shifts
+# the lines after it; the probe_ names in the non-template code must still
+# map to their original lines. (-xc++; template-interior names map only
+# approximately, by contract, so none are placed there.)
+echo
+echo cxx_templates.cpp
+$TRI_CMD "$@" --line-markers cxx_templates.cpp -o Output.cxx.cpp -- -xc++ 2>&1
+echo "tri-pp exit code: $?"
+python3 check_markers.py cxx_templates.cpp Output.cxx.cpp
+echo "checker exit code: $?"
+rm -f Output.cxx.cpp

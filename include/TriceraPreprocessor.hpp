@@ -20,6 +20,7 @@ class UsedFunAndTypeCollector;
 // one transformer stage; each round runs on a fresh parse of the previous
 // round's text, so rounds cannot conflict
 enum class Stage {
+  CXX_TO_CPLUS,
   TYPE_CANONISE,
   TYPEDEF_REMOVE,
   CHAR_REWRITE,

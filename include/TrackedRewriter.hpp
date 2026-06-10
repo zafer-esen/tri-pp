@@ -119,11 +119,13 @@ public:
     return InsertText(Loc, Str);
   }
 
-  bool InsertTextBefore(clang::SourceLocation Loc, llvm::StringRef Str) {
-    return InsertText(Loc, Str, false);
+  bool InsertTextBefore(clang::SourceLocation Loc, llvm::StringRef Str,
+                        unsigned originLine = 0) {
+    return InsertText(Loc, Str, false, false, originLine);
   }
 
-  bool InsertTextAfterToken(clang::SourceLocation Loc, llvm::StringRef Str);
+  bool InsertTextAfterToken(clang::SourceLocation Loc, llvm::StringRef Str,
+                            unsigned originLine = 0);
 
   bool ReplaceText(clang::SourceRange range, llvm::StringRef NewStr);
 

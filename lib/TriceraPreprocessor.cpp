@@ -16,6 +16,7 @@
 #include "ExecutionCountAnalyzer.hpp"
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
+#include "CXXToCPlusTranslator.hpp"
 
 using namespace clang;
 using namespace ast_matchers;
@@ -33,6 +34,15 @@ void MainConsumer::runStage(Stage stage, clang::ASTContext &Ctx,
                             UsedFunAndTypeCollector &usedFunsAndTypes,
                             bool hadError) {
   switch (stage) {
+  case Stage::CXX_TO_CPLUS: {
+    // translate C++ to the C+ subset
+    if (!Ctx.getLangOpts().CPlusPlus)
+      break;
+    rewriter.setActiveTransformer("CXXToCPlusTranslator");
+    CXXToCPlusTranslator translator(Ctx, rewriter, state.facts.mangledNames);
+    translator.TraverseDecl(Ctx.getTranslationUnitDecl());
+    break;
+  }
   case Stage::TYPE_CANONISE: {
     // canonise all used types
     rewriter.setActiveTransformer("TypeCanoniser");
@@ -115,8 +125,10 @@ void MainConsumer::HandleTranslationUnit(clang::ASTContext& Ctx) {
   // todo: process files where an error has occurred?
   // errors also occur on some inputs which TriCera would accept
   bool hadError = Ctx.getDiagnostics().hasErrorOccurred();
-  bool collectAllFuns = hadError || noDeclSlice;
-  bool collectAllTypes = hadError || noDeclSlice;
+  // C++ slicing is not reliable yet, so keep all declarations for C++
+  bool isCXX = Ctx.getLangOpts().CPlusPlus;
+  bool collectAllFuns = hadError || noDeclSlice || isCXX;
+  bool collectAllTypes = hadError || noDeclSlice || isCXX;
 
   // collect all used functions and types
   UsedFunAndTypeCollector usedFunsAndTypes(Ctx, collectAllFuns,

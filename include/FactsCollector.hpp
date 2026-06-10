@@ -9,6 +9,13 @@
 #include <string>
 #include <vector>
 
+// a synthesized name and the original name it stands for
+// e.g. "Pair_int_" for "Pair<int>"
+struct MangledName {
+  std::string mangled;
+  std::string original;
+};
+
 struct ProgramFacts {
   // names of the allocation functions the program references
   std::set<std::string> allocationFunctions;
@@ -22,6 +29,8 @@ struct ProgramFacts {
   // input variables and input arrays added by the determinizer
   std::vector<std::string> inputVariables;
   std::vector<std::string> inputArrays;
+  // mangled names from C++ template instantiation
+  std::vector<MangledName> mangledNames;
 };
 
 // collects the facts above from the AST

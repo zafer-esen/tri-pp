@@ -1,0 +1,429 @@
+
+--- inheritance_multiple.cpp ---
+class Drawable {
+public:
+    virtual void draw() = 0;
+};
+
+class Clickable {
+public:
+    virtual void onClick() {}
+};
+
+class Button : public Drawable, public Clickable {
+public:
+    void draw() override {}
+    void onClick() override {}
+    static int getClickCount() { return count; }
+private:
+    static int count;
+};
+
+int Button::count = 0;
+
+int main() {
+    class Button b;
+    b.draw();
+    b.onClick();
+    return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- namespaces_nested.cpp ---
+namespace university {
+    namespace department {
+        class Teacher {
+        public:
+            struct Details {
+                int age;
+                char* name;
+            };
+            void setDetails(struct Details d) { this->info = d; }
+            struct Details getDetails() const { return this->info; }
+        private:
+            struct university::department::Teacher::Details info;
+        };
+    }
+}
+
+int main() {
+    class university::department::Teacher t;
+    struct university::department::Teacher::Details d;
+    t.university::department::Teacher::setDetails(d);
+    return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- templates_basic.cpp ---
+class Box_double_ {
+public:
+  Box_double_(double val) : value(val) {
+}
+  double getValue() const {
+    return this->value;
+}
+  void setValue(double val) {
+    this->value = val;
+}
+private:
+  double value;
+};
+
+
+class Box_int_ {
+public:
+  Box_int_(int val) : value(val) {
+}
+  int getValue() const {
+    return this->value;
+}
+  void setValue(int val) {
+    this->value = val;
+}
+private:
+  int value;
+};
+
+
+                     
+           
+       
+                              
+                                        
+                                         
+        
+            
+ ;
+
+class Base {
+public:
+    virtual void show() {}
+};
+
+class Derived : public Base {
+public:
+    void show() override {}
+    static int getKind() { return 1; }
+};
+
+int main() {
+    class Box_int_ intBox(10);
+    class Box_double_ doubleBox(20.5);
+    class Derived d;
+    return 0;
+}
+--- mangledNames ---
+mangledNames:
+  - mangled: Box_int_
+    original: "Box<int>"
+  - mangled: Box_double_
+    original: "Box<double>"
+
+--- templates_complex.cpp ---
+class Pair_int__char_ {
+public:
+  int first;
+  char second;
+  Pair_int__char_(int a, char b) : first(a), second(b) {
+}
+};
+
+
+                                   
+            
+       
+             
+              
+                                             
+ ;
+
+                     
+                 
+                 
+ 
+
+int add_int_(int a, int b) {
+    return a + b;
+}
+
+
+
+double add_double_(double a, double b) {
+    return a + b;
+}
+
+
+
+int main() {
+    class Pair_int__char_ p(1, 97);
+    int sum = add_int_(5, 10);
+    double dsum = add_double_(1.5, 2.5);
+    return 0;
+}
+--- mangledNames ---
+mangledNames:
+  - mangled: Pair_int__char_
+    original: "Pair<int, char>"
+  - mangled: add_int_
+    original: "add<int>"
+  - mangled: add_double_
+    original: "add<double>"
+
+--- templates_typedef.cpp ---
+class Box_char_ {
+public:
+  Box_char_(char val) : value(val) {
+}
+  char getValue() const {
+    return this->value;
+}
+private:
+  char value;
+};
+
+
+class Box_double_ {
+public:
+  Box_double_(double val) : value(val) {
+}
+  double getValue() const {
+    return this->value;
+}
+private:
+  double value;
+};
+
+
+class Box_int_ {
+public:
+  Box_int_(int val) : value(val) {
+}
+  int getValue() const {
+    return this->value;
+}
+private:
+  int value;
+};
+
+
+                     
+           
+       
+                              
+                                        
+        
+            
+ ;
+
+                              
+using DoubleBox = class Box_double_;
+
+int main() {
+    class Box_int_ ib(10);
+    class Box_double_ db(20.5);
+    class Box_char_ cb(97);
+    
+    int v = ib.Box_int_::getValue();
+    double d = db.Box_double_::getValue();
+    
+    return 0;
+}
+--- mangledNames ---
+mangledNames:
+  - mangled: Box_int_
+    original: "Box<int>"
+  - mangled: Box_double_
+    original: "Box<double>"
+  - mangled: Box_char_
+    original: "Box<char>"
+
+--- elab_type_simple.cpp ---
+class C {
+    int x;
+};
+
+int main() {
+    class C c1;
+    class C *c2 = &c1;
+    class C &c3 = c1;
+    class C **c4 = &c2;
+
+    class C c5, *c6;
+
+    return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- elab_type_nested_classes.cpp ---
+class Outermost {
+  public:
+    class Inner {
+      public:
+        class Innermost {
+        };
+    };
+};
+
+
+int main() {
+  class Outermost x;
+  class Outermost::Inner y;
+  class Outermost::Inner::Innermost z;
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- access_member_vars.cpp ---
+class C {
+  public:
+    int val;
+
+    void set(int value) {
+      this->val = value;
+    }
+
+    void shadowed_set(int val) {
+      val = val;
+    }
+
+    void qualified_set(int val) {
+      this->val = val;
+    }
+};
+
+int main() {
+  class C c;
+  c.C::set(5);
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- throw_test.cpp ---
+class MyException {};
+
+void f() {
+  throw (class MyException) (MyException());
+}
+
+void g(int x) {
+  if (x > 0) throw (int) (x);
+  if (x < 0) throw (const char *) ("error");
+  throw (double) (1.0 + 2.0);
+}
+
+struct S {
+    int a;
+};
+
+void h() {
+    struct S s = {1};
+    throw (struct S) (s);
+}
+
+void i() {
+    throw (char) (97);
+}
+
+int main() {
+  try {
+    f();
+  } catch (class MyException& e) {
+  }
+  try {
+    g(1);
+  } catch (...) {}
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- throw_with_cast.cpp ---
+class MyException {};
+
+void f() {
+  // Existing elaborated cast
+  throw (class MyException) ((class MyException) MyException());
+}
+
+void g() {
+  // Existing unelaborated cast
+  throw (class MyException) ((MyException) MyException());
+}
+
+struct S { int a; };
+
+void h() {
+  // Existing struct cast
+  throw (struct S) ((struct S) S{1});
+}
+
+int main() {
+  try { f(); } catch (...) {}
+  try { g(); } catch (...) {}
+  try { h(); } catch (...) {}
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []
+
+--- qualified_function_calls.cpp ---
+class A {
+  public:
+    int x;
+    void set(int val) {
+      this->x = val;
+    }
+    int get() {
+      return this->x;
+    }
+
+    virtual int num() {
+      return 1;
+    }
+};
+class B : public A {
+  public:
+    int y;
+    int num() override {
+      return 2;
+    }
+};
+
+
+class C {
+  public:
+    int x;
+    C(int val) {
+      this->x = val;
+    }
+
+    ~C() {}
+};
+
+class Unused {
+};
+
+int main() {
+  class A a;
+  a.A::set(1);
+  a.A::get();
+
+  class B b;
+  class A *a_ptr = &b;
+
+  a_ptr->num(); // Should not be qualified as it is dynamically dispatched
+  b.num(); // Should not be qualified, still goes via vtable
+
+  class C c(10);
+
+  c.C::~C();
+
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []

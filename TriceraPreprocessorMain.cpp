@@ -212,13 +212,15 @@ newFactsActionFactory(ProgramFacts &facts) {
 }
 
 // One transformer per round, so the transformers cannot conflict. The
-// order matters: unused declarations go first, the later rounds never see
-// them; the for-loop and loop-guard rounds leave copies that later rounds
-// rewrite as ordinary code; types are canonised before the typedefs are
-// removed (TypeCanonise also names anonymous tags, so its output parses
-// on its own).
+// order matters: C++ is lowered to C first; unused declarations go next,
+// the later rounds never see them; the for-loop and loop-guard rounds
+// leave copies that later rounds rewrite as ordinary code; types are
+// canonised before the typedefs are removed (TypeCanonise also names
+// anonymous tags, so its output parses on its own). CXX_TO_CPLUS is a
+// no-op on C inputs, so its round is free there (the parse is reused).
 static std::vector<Round> computeRounds() {
   std::vector<Round> rounds;
+  rounds.push_back(Round{Stage::CXX_TO_CPLUS});
   if (makeCallsUnique) {
     rounds.push_back(Round{Stage::MAKE_CALLS_UNIQUE});
   } else if (determinize) {
