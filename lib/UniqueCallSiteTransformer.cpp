@@ -1,6 +1,6 @@
 #include "UniqueCallSiteTransformer.hpp"
 #include "clang/Lex/Lexer.h"
-#include "llvm/ADT/Optional.h"
+#include <optional>
 
 #include <algorithm>
 
@@ -126,7 +126,7 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
   SourceLocation endLoc = declToClone->getEndLoc();
 
   if (!declToClone->hasBody()) {
-    llvm::Optional<Token> nextToken = clang::Lexer::findNextToken(endLoc, SM, LangOpts);
+    std::optional<Token> nextToken = clang::Lexer::findNextToken(endLoc, SM, LangOpts);
     if (nextToken && nextToken->is(clang::tok::semi)) {
       endLoc = nextToken->getLocation();
     }
@@ -185,7 +185,7 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
   unsigned nameLen = clang::Lexer::MeasureTokenLength(nameRange.getBegin(), SM, LangOpts);
   originalFuncText.replace(nameOffset, nameLen, newName);
 
-  if (!declToClone->hasBody() && !llvm::StringRef(originalFuncText).startswith("extern ")) {
+  if (!declToClone->hasBody() && !llvm::StringRef(originalFuncText).starts_with("extern ")) {
       originalFuncText.insert(0, "extern ");
   }
 
@@ -193,7 +193,7 @@ std::string UniqueCallTransformer::getOrCreateClone(const FunctionDecl *FD) {
   SourceLocation insertPos;
   SourceRange mostRecentRange = mostRecentDecl->getSourceRange();
   if (!mostRecentDecl->hasBody()) {
-      llvm::Optional<Token> nextToken = clang::Lexer::findNextToken(mostRecentRange.getEnd(), SM, LangOpts);
+      std::optional<Token> nextToken = clang::Lexer::findNextToken(mostRecentRange.getEnd(), SM, LangOpts);
       if (nextToken && nextToken->is(clang::tok::semi)) {
           insertPos = nextToken->getEndLoc();
       } else {

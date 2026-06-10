@@ -227,7 +227,7 @@ bool CXXToCPlusTranslator::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
     // print() emits it; this mutates the AST (the one exception to the
     // no-mutation rule, the mutated decl is implicit anyway)
     if (auto *MD = dyn_cast<CXXMethodDecl>(Decl)) {
-      if (!MD->isPure() && !MD->hasBody()) {
+      if (!MD->isPureVirtual() && !MD->hasBody()) {
         if (auto *Pattern = MD->getTemplateInstantiationPattern()) {
           if (Pattern->hasBody()) {
             MD->setInnerLocStart(Pattern->getInnerLocStart());
@@ -312,9 +312,9 @@ std::string CXXToCPlusTranslator::mangleTemplateName(const ClassTemplateSpeciali
 
 static std::string getTagKeyword(const CXXRecordDecl *RD) {
   switch (RD->getTagKind()) {
-    case TTK_Class:  return "class";
-    case TTK_Struct: return "struct";
-    case TTK_Union:  return "union";
+    case clang::TagTypeKind::Class:  return "class";
+    case clang::TagTypeKind::Struct: return "struct";
+    case clang::TagTypeKind::Union:  return "union";
     default:         return "";
   }
 }
@@ -403,7 +403,7 @@ bool CXXToCPlusTranslator::VisitCXXThrowExpr(CXXThrowExpr *E) {
     QualType T = SubExpr->getType();
     PrintingPolicy Policy(Context.getLangOpts());
     Policy.SuppressTagKeyword = false;
-    std::string TypeStr = T.getAsString(Policy);
+    std::string TypeStr = T.getCanonicalType().getAsString(Policy);
 
     Rewriter.InsertTextBefore(SubExpr->getBeginLoc(), "(" + TypeStr + ") (");
     Rewriter.InsertTextAfterToken(SubExpr->getEndLoc(), ")");

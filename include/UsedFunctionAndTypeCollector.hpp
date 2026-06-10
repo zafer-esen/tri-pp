@@ -7,6 +7,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeVisitor.h"
+#include "llvm/ADT/SetVector.h"
 
 class FunctionInfo {
   private:

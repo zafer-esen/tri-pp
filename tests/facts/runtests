@@ -10,9 +10,11 @@ run() {
     name=$1; shift
     echo
     echo "$name"
+    # -Wno-everything mirrors how TriCera invokes tri-pp; without it newer
+    # clang rejects the loose C that TriCera accepts (e.g. implicit malloc)
     case "$name" in
-        *.cpp) $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- 2>&1 ;;
-        *)     $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -xc 2>&1 ;;
+        *.cpp) $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -Wno-everything 2>&1 ;;
+        *)     $TRI_CMD "$@" --facts Output.facts.yml "$name" -o /dev/null -- -xc -Wno-everything 2>&1 ;;
     esac
     echo "exit code: $?"
     cat Output.facts.yml

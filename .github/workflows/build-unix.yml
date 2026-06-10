@@ -8,56 +8,72 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  BUILD_TYPE: Release
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04]  # macos-14 macOS ARM64 build disabled - no llvm@13 in Homebrew
+        include:
+          # Linux builds run inside the pinned Ubuntu 18.04 image (see
+          # Dockerfile for why); macOS builds natively with Apple clang.
+          # Intel macOS has no native LLVM 18.1.8 package and is not built.
+          - os: ubuntu-22.04
+            asset: tri-pp-linux-x64
+            mode: docker
+            archcheck: x86-64
+          - os: ubuntu-24.04-arm
+            asset: tri-pp-linux-arm64
+            mode: docker
+            archcheck: aarch64
+          - os: macos-15
+            asset: tri-pp-macos-arm64
+            mode: native
+            archcheck: arm64
 
     steps:
     - uses: actions/checkout@v6
 
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
+    - name: Build (Linux, in Ubuntu 18.04 container)
+      if: matrix.mode == 'docker'
       run: |
-        brew install libtool llvm@13
-        echo "HOMEBREW_LLVM_PATH=$(brew --prefix llvm@13)" >> $GITHUB_ENV
+        docker build -t tri-pp-build .
+        docker run --rm -v "$PWD":/build-zone tri-pp-build /bin/bash -c "chmod +x mk && ./mk"
+        cp build/tri-pp "${{ matrix.asset }}"
 
-    - name: Install libtool (Ubuntu)
-      if: runner.os == 'Linux'
+    - name: Build (macOS, native)
+      if: matrix.mode == 'native'
       run: |
-        sudo apt-get update
-        sudo apt-get install libtool-bin
+        brew list cmake >/dev/null 2>&1 || brew install cmake
+        ./mk
+        cp tri-pp "${{ matrix.asset }}"
 
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+    - name: Verify architecture
+      run: file "${{ matrix.asset }}" | grep -iq "${{ matrix.archcheck }}"
 
-    - name: Build
-      run: ./mk
-
-    - name: Run Tests
+    - name: Run tests
       run: |
-        export TRI_CMD=${{ github.workspace }}/build/tri-pp
+        export TRI_CMD="$PWD/${{ matrix.asset }}"
         ./tests/runalldirs
-
-    - name: Rename Binary
-      run: mv ${{ github.workspace }}/build/tri-pp ${{ github.workspace }}/tri-pp-${{ matrix.os }}
 
     - name: Checksum
       if: startsWith(github.ref, 'refs/tags/')
-      run: cd ${{ github.workspace }} && sha256sum tri-pp-${{ matrix.os }} > tri-pp-${{ matrix.os }}.sha256
+      run: shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
 
-    - name: Create Release
+    - name: Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ github.workspace }}/tri-pp-${{ matrix.os }}
-          ${{ github.workspace }}/tri-pp-${{ matrix.os }}.sha256
+          ${{ matrix.asset }}
+          ${{ matrix.asset }}.sha256
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Make binaries downloadable from every workflow run
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset }}
+        path: ${{ matrix.asset }}

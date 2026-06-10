@@ -41,7 +41,7 @@ static bool isMarkerLine(StringRef line) {
   if (i >= line.size() || line[i] != '#') return false;
   ++i;
   while (i < line.size() && (line[i] == ' ' || line[i] == '\t')) ++i;
-  if (line.substr(i).startswith("line")) {
+  if (line.substr(i).starts_with("line")) {
     i += 4;
     if (i >= line.size() || (line[i] != ' ' && line[i] != '\t')) return false;
     while (i < line.size() && (line[i] == ' ' || line[i] == '\t')) ++i;
