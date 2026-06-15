@@ -432,6 +432,8 @@ bool CXXToCPlusTranslator::VisitCXXMemberCallExpr(CXXMemberCallExpr *CE) {
   // virtual calls are not statically dispatched, do not qualify them
   if (MD->isVirtual()) return true;
 
+  if (isa<CXXDestructorDecl>(MD)) return true; // skip destructor calls
+
   CXXRecordDecl *RD = MD->getParent();
   if (!RD) return true;
 
