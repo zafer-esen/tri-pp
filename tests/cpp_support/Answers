@@ -427,3 +427,23 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+
+--- non_qual_dtor.cpp ---
+class C {
+  public:
+    int x;
+    C(int val) {
+      this->x = val;
+    }
+
+    ~C() { }
+};
+
+
+int main() {
+  class C obj(1);
+  obj.~C();
+  return 0;
+}
+--- mangledNames ---
+mangledNames: []
