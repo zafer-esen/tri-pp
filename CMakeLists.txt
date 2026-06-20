@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(tricera-preprocessors)
-set(PROJECT_VERSION "0.3.1")
+set(PROJECT_VERSION "0.3.2")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp.in"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/TriceraConfig.hpp")
 
