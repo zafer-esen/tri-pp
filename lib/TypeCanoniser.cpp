@@ -243,6 +243,8 @@ void TypeCanoniserMatcher::run(const MatchFinder::MatchResult &Result) {
   }
   else if (enumDeclStmt) {
     // Comment out trailing commas in enum declarations
+    if (enumDeclStmt->enumerators().begin() == enumDeclStmt->enumerators().end())
+      return;
     auto it = enumDeclStmt->enumerators().begin();
     auto itPrev = it;
     while ((it != enumDeclStmt->enumerators().end())) {
