@@ -16,6 +16,11 @@ struct MangledName {
   std::string original;
 };
 
+struct TypedefMapping {
+  std::string name;
+  std::string underlying;
+};
+
 struct ProgramFacts {
   // names of the allocation functions the program references
   std::set<std::string> allocationFunctions;
@@ -31,10 +36,15 @@ struct ProgramFacts {
   std::vector<std::string> inputArrays;
   // mangled names from C++ template instantiation
   std::vector<MangledName> mangledNames;
+  // eliminated typedefs and the underlying type spelling they expand to
+  std::vector<TypedefMapping> typedefs;
 };
 
 // collects the facts above from the AST
 void collectFacts(clang::ASTContext &Ctx, ProgramFacts &facts);
+
+// collects the eliminated typedefs from the AST
+void collectTypedefs(clang::ASTContext &Ctx, ProgramFacts &facts);
 
 // writes the facts file. `finalText` is the produced output
 bool writeFacts(llvm::StringRef path, const ProgramFacts &facts,

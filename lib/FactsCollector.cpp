@@ -1,10 +1,12 @@
 #include "FactsCollector.hpp"
+#include "TypeCanoniser.hpp"
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/StmtCXX.h"
+#include "clang/AST/Type.h"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
@@ -98,6 +100,55 @@ void collectFacts(ASTContext &Ctx, ProgramFacts &facts) {
   };
 
   FactsVisitor visitor(Ctx, facts);
+  visitor.TraverseDecl(Ctx.getTranslationUnitDecl());
+}
+
+void collectTypedefs(ASTContext &Ctx, ProgramFacts &facts) {
+  class TypedefVisitor : public RecursiveASTVisitor<TypedefVisitor> {
+  public:
+    TypedefVisitor(ASTContext &Ctx, ProgramFacts &facts)
+        : Ctx(Ctx), facts(facts) {}
+
+    bool VisitTypedefDecl(TypedefDecl *decl) {
+      SourceLocation loc = decl->getBeginLoc();
+      if (!loc.isValid() ||
+          Ctx.getSourceManager().getDecomposedLoc(loc).first !=
+              Ctx.getSourceManager().getMainFileID())
+        return true;
+
+      QualType typedefType = Ctx.getTypedefType(decl);
+      QualType canonicalType =
+          QualType(typedefType->getCanonicalTypeUnqualified());
+
+      TypeCanoniserVisitor typeVisitor(Ctx);
+      typeVisitor.TraverseType(canonicalType);
+      std::string unqualName = typeVisitor.getUnqualifiedTypeName();
+
+      std::string kindName;
+      if (const TagType *tagType =
+              canonicalType->getAs<TagType>()) {
+        kindName = tagType->getDecl()->getKindName().str();
+      }
+      std::string tagName;
+      if (!kindName.empty()) {
+        std::string expectedPrefix = kindName + " ";
+        if (unqualName.find(expectedPrefix) != 0)
+          tagName = expectedPrefix;
+      }
+
+      TypedefMapping mapping;
+      mapping.name = decl->getNameAsString();
+      mapping.underlying = tagName + unqualName;
+      facts.typedefs.push_back(mapping);
+      return true;
+    }
+
+  private:
+    ASTContext &Ctx;
+    ProgramFacts &facts;
+  };
+
+  TypedefVisitor visitor(Ctx, facts);
   visitor.TraverseDecl(Ctx.getTranslationUnitDecl());
 }
 
@@ -208,6 +259,14 @@ bool writeFacts(StringRef path, const ProgramFacts &facts,
     for (size_t i = 0; i < facts.mangledNames.size(); ++i)
       out << "  - mangled: " << facts.mangledNames[i].mangled << "\n"
           << "    original: \"" << facts.mangledNames[i].original << "\"\n";
+  }
+  if (facts.typedefs.empty())
+    out << "typedefs: []\n";
+  else {
+    out << "typedefs:\n";
+    for (size_t i = 0; i < facts.typedefs.size(); ++i)
+      out << "  - name: " << facts.typedefs[i].name << "\n"
+          << "    underlying: \"" << facts.typedefs[i].underlying << "\"\n";
   }
   return true;
 }

@@ -47,6 +47,9 @@ void MainConsumer::runStage(Stage stage, clang::ASTContext &Ctx,
     // canonise all used types
     rewriter.setActiveTransformer("TypeCanoniser");
     TypeCanoniser typeCanoniser(rewriter, Ctx, usedFunsAndTypes);
+    // collect while the typedefs still exist, before the removal round
+    if (!factsFilename.empty())
+      collectTypedefs(Ctx, state.facts);
     break;
   }
   case Stage::TYPEDEF_REMOVE: {

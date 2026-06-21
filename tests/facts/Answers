@@ -19,6 +19,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 nothing_referenced.c
 exit code: 0
@@ -40,6 +41,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 malloc_in_removed_decl.c
 exit code: 0
@@ -61,6 +63,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 sized_array.c
 exit code: 0
@@ -82,6 +85,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 unbounded_array_param.c
 exit code: 0
@@ -103,6 +107,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 determinize_adds_arrays.c
 exit code: 0
@@ -124,6 +129,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 determinize_with_own_arrays.c
 exit code: 0
@@ -145,6 +151,7 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 time_tokens.c
 exit code: 0
@@ -166,6 +173,7 @@ clockTokenSeen: true
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []
 
 exceptions.cpp
 exit code: 0
@@ -187,3 +195,4 @@ clockTokenSeen: false
 durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
+typedefs: []

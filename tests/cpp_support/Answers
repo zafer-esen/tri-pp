@@ -29,6 +29,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- namespaces_nested.cpp ---
 namespace university {
@@ -55,6 +56,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- templates_basic.cpp ---
 class Box_double_ {
@@ -120,6 +122,7 @@ mangledNames:
     original: "Box<int>"
   - mangled: Box_double_
     original: "Box<double>"
+typedefs: []
 
 --- templates_complex.cpp ---
 class Pair_int__char_ {
@@ -170,6 +173,7 @@ mangledNames:
     original: "add<int>"
   - mangled: add_double_
     original: "add<double>"
+typedefs: []
 
 --- templates_typedef.cpp ---
 class Box_char_ {
@@ -238,6 +242,9 @@ mangledNames:
     original: "Box<double>"
   - mangled: Box_char_
     original: "Box<char>"
+typedefs:
+  - name: IntBox
+    underlying: "class Box_int_"
 
 --- elab_type_simple.cpp ---
 class C {
@@ -256,6 +263,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- elab_type_nested_classes.cpp ---
 class Outermost {
@@ -276,6 +284,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- access_member_vars.cpp ---
 class C {
@@ -302,6 +311,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- throw_test.cpp ---
 class MyException {};
@@ -341,6 +351,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- throw_with_cast.cpp ---
 class MyException {};
@@ -370,6 +381,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- qualified_function_calls.cpp ---
 class A {
@@ -427,6 +439,7 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
 
 --- non_qual_dtor.cpp ---
 class C {
@@ -447,3 +460,4 @@ int main() {
 }
 --- mangledNames ---
 mangledNames: []
+typedefs: []
