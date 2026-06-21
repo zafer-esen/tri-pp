@@ -44,7 +44,7 @@ UnusedDeclCommenterASTConsumer::UnusedDeclCommenterASTConsumer(TrackedRewriter &
       anyOf(
         hasDescendant(qualType(hasCanonicalType(
           qualType(anyOf(recordType(), enumType())).bind("varBaseType")))),
-        hasType(qualType(arrayType()).bind("varBaseType"))
+        hasType(qualType(hasCanonicalType(qualType(arrayType()).bind("varBaseType"))))
       )
     ).bind("varDecl")
     // more?
