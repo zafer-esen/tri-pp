@@ -1,0 +1,499 @@
+
+--- 01_funclike.c ---
+exit code: 0
+line count: kept
+#define GOOD(x) ((x) >= 240)
+void entry(void) { unsigned char status = 255; //@ assert ((status) >= 240);
+}
+
+--- 02_objlike.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+void f(int x) {
+  //@ assert x <= 240;
+  x = 0;
+}
+
+--- 03_nested.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+#define BOUND (LIMIT + 1)
+#define INRANGE(v) ((v) >= 0 && (v) < BOUND)
+void f(int x) {
+  //@ assert ((x) >= 0 && (x) < (240 + 1)) && ((240) >= 0 && (240) < (240 + 1));
+  x = 0;
+}
+
+--- 04_empty.c ---
+exit code: 0
+line count: kept
+#define NOTHING
+#define EMPTYF(a)
+void f(int x) {
+  //@ assert  x > 0 ;
+  x = 0;
+}
+
+--- 05_undef_redef.c ---
+exit code: 0
+line count: kept
+#define LIMIT 10
+void f(int x) {
+  //@ assert x < 10;
+#undef LIMIT
+#define LIMIT 20
+  //@ assert x < 20;
+#undef LIMIT
+  //@ assert x < LIMIT;
+  x = 0;
+}
+
+--- 06_assert_h.c ---
+exit code: 0
+line count: kept
+#include <assert.h>
+void f(int x) {
+  //@ assert (x > 0);
+  assert(x > 0);
+}
+
+--- 07_assert_local.c ---
+exit code: 0
+line count: kept
+#define assert(e) ((void)0)
+#define requires 1
+#define loop 2
+#define invariant 3
+void f(int x) {
+  //@ assert (x > 0);
+  /*@ loop invariant x >= 0; */
+  while (x > 0) x--;
+}
+
+--- 08_old_result.c ---
+exit code: 0
+line count: kept
+#define old 42
+#define result 7
+/*@ ensures \result == \old(x) + 42; */
+int f(int x) { return x + 42; }
+
+--- 09_at_labels.c ---
+exit code: 0
+line count: kept
+#define Pre 1
+#define Here 2
+#define LoopEntry 3
+#define OFS 4
+int f(int x) {
+  //@ assert \at(x, Pre) + 4 == \at(x, Here) + 4;
+  /*@ loop invariant \at(x, LoopEntry) <= x + 4; */
+  while (x < 10) { x++; }
+  return x;
+}
+
+--- 10_valid_ranges.c ---
+exit code: 0
+line count: kept
+#define n 10
+#define LIMIT 240
+#define N 5
+#define size 8
+#define VALID(p,k) \valid(p+(0..k-1))
+#define VALID2(p,k) \valid(p+(0 .. k-1))
+/*@ requires \valid(a+(0..10 -1));
+    requires \valid(a+(0..240)) && \valid(a+(1..5 -1));
+    requires \valid(a+(0..8 -1));
+    requires \valid(a+(0..k-1)) && \valid(a+(0 .. 10 -1));
+    requires \valid(a+(0..9)) && \valid(a+(0 .. 9)) && \valid(a+(1.5..2));
+    assigns a[0..10 -1], a[5..240];
+ */
+int f(int *a) { return a[0]; }
+
+--- 11_multiline.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+#define POS(x) ((x) > 0)
+/*@ requires ((n) > 0);
+  @ requires n < 240;
+  @ ensures \result == n +
+  @   240;
+  @ assigns \nothing; */
+int f(int n) { return n + LIMIT; }
+/*@ requires ((n) > 0)
+ && n < 240;
+  @ ensures \result == n + 240;
+  @ assigns \nothing; */
+int g(int n) { return n + LIMIT; }
+
+--- 12_ghost.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+void f(void) {
+  /*@ ghost int g = 240; */
+  int x = 0;
+  /*@ ghost g = g + 240; */
+}
+
+--- 13_stringify_paste.c ---
+exit code: 0
+line count: kept
+#define STR(x) #x
+#define CAT(a,b) a##b
+void f(int xy) {
+  //@ assert xy > 0 && "hello" != 0;
+  xy = 0;
+}
+
+--- 14_variadic.c ---
+exit code: 0
+line count: kept
+#define ALL(...) (__VA_ARGS__)
+#define FIRST(a, ...) (a)
+void f(int x, int y) {
+  //@ assert (x > 0, y > 0) && (x) > 0;
+  x = 0;
+}
+
+--- 15_if0.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+void f(int x) {
+#if 0
+  //@ assert x < LIMIT;
+#endif
+  //@ assert x <= 240;
+  x = 0;
+}
+
+--- 16_no_newline_line.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+int g;
+//@ assert g < 240;
+--- 16_no_newline_block.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+int g;
+/*@ assert g < 240; */
+--- 17_in_macro_args.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+#define FOO(a, b) ((a) + (b))
+int f(int x) {
+  int r = FOO(x, //@ assert x < LIMIT;
+     LIMIT);
+  int s = FOO /*@ assert x < LIMIT; */ (1, 2);
+  return r + s;
+}
+
+--- 18_directive_lines.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240 //@ assert LIMIT > 0;
+#define LIM2 1 /*@ assert LIMIT > 0; */ + 1
+#if LIMIT //@ assert 240;
+#endif //@ assert LIMIT;
+#ifdef LIMIT //@ y LIMIT
+int b;
+#endif /*@ w
+          LIMIT */
+int f(int x) { return x + LIM2; }
+
+--- 19_after_if_for.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+                  
+int f(int x) {
+  if (x)
+    //@ assert x != 240;
+    x = 1;
+  { int i = 0; for (         ; i < 3; i++)
+    /*@ assert i < 240; */
+  {
+    x += i;
+  }}
+  while (x > LIMIT)
+    //@ assert x > 240;
+    x--;
+  //@ assert x < 240;
+  int y = x;
+  /*@ assert y < 240; */ int z = y;
+  return z;
+}
+//@ predicate P(int v) = v < 240;
+int g(int a);
+
+--- 20_funclike_noparen.c ---
+exit code: 0
+line count: kept
+#define GOOD(x) ((x) >= 240)
+int f(int x) {
+  //@ assert GOOD;
+  x = GOOD(x);
+  /*@ assert GOOD */ (x);
+  return x;
+}
+
+--- 22_pragma_counter.c ---
+exit code: 0
+line count: kept
+#define DIAG_OFF _Pragma("GCC diagnostic ignored \"-Wunused-value\"")
+#define PACK _Pragma("pack(1)")
+#define WRAP(e) (e && DIAG_OFF 1)
+int f(int x) {
+  //@ assert __COUNTER__ == 0 && DIAG_OFF x > 0;
+  x;
+  //@ assert PACK x > 0;
+  //@ assert __COUNTER__ >= 0;
+  //@ assert WRAP(x > 0);
+  return __COUNTER__;
+}
+struct S { char c; int i; };
+int sz = sizeof(struct S);
+
+--- 23_misc_lexing.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+#define ID(x) x
+int f(int x) {
+  //@ assert x < \
+     240;
+  //@ assert x < 240; //@ assert x > LIMIT;
+  /*@ assert x < 240; */ /*@ assert x < 240
+; */
+  /*@ assert x < 240; // trailing LIMIT comment
+      assert x > 1; */
+  //@ assert c == '*' && s == "LIMIT /* x */" && 0..240;
+  return x;
+}
+
+--- 24_selfref.c ---
+exit code: 0
+line count: kept
+#define x x
+#define y (y + x)
+#define F(a) F(a) + 1
+int f(int x) {
+  //@ assert (y + x) > F(x) + 1;
+  return x;
+}
+
+--- 25_block_in_code.c ---
+exit code: 0
+line count: kept
+#define LIMIT 240
+        struct T { int a; }  ;
+int f(struct T t) {
+  int r = (int) /*@ assert 240; */ t.a;
+  struct T u = /*@ ghost int k = 240; */ t;
+  switch (r) { case 1: /*@ assert r == 240; */ break; default: ; }
+  return r + u.a + sizeof(/*@ assert 240; */ struct T);
+}
+
+--- 26_spacing.c ---
+exit code: 0
+line count: kept
+#define NEG -1
+#define PLUS +
+#define EMPTY
+#define ID(a) a
+#define LIMIT 240
+#define TWO(a, b) ((a) + (b))
+int f(int x) {
+  //@ assert x == - -1 && x == - -1 && x + +1 > 0 && x+240 > 0;
+  //@ assert ID(x \
+     ) > 0 && LIMIT > 0;
+  /*@ requires ((x) + (240))
+ > 0;
+    @ ensures \result >= 240
+;
+    @*/
+  return x;
+}
+
+--- 28_loop_annots.c ---
+exit code: 0
+line count: kept
+#define N 10
+#define INV(i) (0 <= (i) && (i) <= N)
+int f(void) {
+  int s = 0;
+  int i;
+  /*@ loop invariant (0 <= (i) && (i) <= 10);
+      loop assigns i, s;
+      loop variant 10 - i; */
+  for (i = 0; i < N; i++) { s += i; }
+  return s;
+}
+
+--- 31_header.c ---
+exit code: 0
+line count: kept
+#include "31_header.h"
+//@ requires x < 7;
+int f(int x) { return x; }
+
+--- 32_comment_extent.c ---
+exit code: 0
+line count: kept
+/* An expansion must not change where the annotation comment ends. */
+#define CLOSE "*/"
+#define TIMES x*
+#define HALF(v) v/2
+#define ID(v) v
+int f(int x, char *s) {
+  /*@ assert s != CLOSE; */
+  //@ assert s != "*/";
+  /*@ assert TIMES/2 > 0; */
+  /*@ assert x* x/2 > 0; */
+  //@ assert x*/2 > 0;
+  //@ assert x > 0; ID(\)
+  return x;
+}
+
+=== without --expand-annot-macros ===
+
+--- 01_funclike.c ---
+exit code: 0
+line count: kept
+#define GOOD(x) ((x) >= 240)
+void entry(void) { unsigned char status = 255; //@ assert GOOD(status);
+}
+
+--- 10_valid_ranges.c ---
+exit code: 0
+line count: kept
+#define n 10
+#define LIMIT 240
+#define N 5
+#define size 8
+#define VALID(p,k) \valid(p+(0..k-1))
+#define VALID2(p,k) \valid(p+(0 .. k-1))
+/*@ requires \valid(a+(0..n-1));
+    requires \valid(a+(0..LIMIT)) && \valid(a+(1..N-1));
+    requires \valid(a+(0..size-1));
+    requires VALID(a, 10) && VALID2(a, n);
+    requires \valid(a+(0..9)) && \valid(a+(0 .. 9)) && \valid(a+(1.5..2));
+    assigns a[0..n-1], a[N..LIMIT];
+ */
+int f(int *a) { return a[0]; }
+
+=== --make-calls-unique, --determinize ===
+
+--- 01_funclike.c ---
+exit code: 0
+line count: kept
+#define GOOD(x) ((x) >= 240)
+void entry(void) { unsigned char status = 255; //@ assert GOOD(status);
+}
+
+--- 01_funclike.c ---
+exit code: 0
+line count: kept
+#define GOOD(x) ((x) >= 240)
+void entry(void) { unsigned char status = 255; //@ assert GOOD(status);
+}
+
+=== no macros in annotations: identical to a run without the flag ===
+29_no_macros_in_annots.c: exit codes 0/0
+byte-identical: PASS
+../line_markers/acsl_annotations.c: exit codes 0/0
+byte-identical: PASS
+
+--- 29_no_macros_in_annots.c ---
+exit code: 0
+line count: kept
+/* Macros used only in code; the annotations use none (one names a
+   function-like macro without arguments). With --expand-annot-macros the
+   output must be byte-identical to the output without it. */
+#define LIMIT 240
+#define GOOD(x) ((x) >= LIMIT)
+                  
+extern int nondet(void);
+/*@ requires 0 <= n && n <= 100;
+  @ requires \valid(a+(0..n-1));
+  @ ensures \result == \old(n) + 1;
+  @ assigns a[0..9];
+  @*/
+int f(int *a, int n) {
+  int k = LIMIT;
+  //@ assert k == 240 && GOOD;
+  /*@ loop invariant 0 <= k; */
+  while (k > 0 && GOOD(k)) { k--; }
+  //@ ghost int g = 0;
+  return n + 1;
+}
+                               
+int main() { int a[10]; return f(a, nondet()); }
+
+=== with --line-markers ===
+exit code: 0
+PASS: probe_acc -> 30_line_markers.c:8, 30_line_markers.c:10, 30_line_markers.c:15, 30_line_markers.c:17, 30_line_markers.c:18
+PASS: probe_after -> 30_line_markers.c:18, 30_line_markers.c:19
+PASS: probe_i -> 30_line_markers.c:12, 30_line_markers.c:14, 30_line_markers.c:15
+PASS: probe_n -> 30_line_markers.c:7, 30_line_markers.c:9, 30_line_markers.c:14, 30_line_markers.c:17
+checker exit code: 0
+/* Expansion combined with --line-markers: the for-loop extraction below
+   changes the line count, the annotations keep theirs; the probes must
+   map to their original lines. */
+#define LIMIT 240
+#define POS(v) ((v) > 0)
+int main() {
+  int probe_n = 5;
+  int probe_acc = 0;
+  /*@ loop invariant ((probe_n) > 0) &&
+    @   probe_acc <= 240;
+    @*/
+  { int probe_i = 0,
+# 12 "30_line_markers.c"
+       j = 1; for (                
+            ;
+       probe_i < probe_n; probe_i++) {
+    probe_acc += probe_i * j;
+  }}
+  //@ assert probe_acc < 240 && ((probe_n) > 0);
+  int probe_after = probe_acc;
+  return probe_after;
+}
+
+=== warnings (without -q) ===
+17_in_macro_args.c: exit code 0
+[tricera-preprocessor] warning: 17_in_macro_args.c:4:18: annotation macros not expanded: macro expansion is disabled at this position
+[tricera-preprocessor] warning: 17_in_macro_args.c:6:15: annotation macros not expanded: macro expansion is disabled at this position
+18_directive_lines.c: exit code 0
+[tricera-preprocessor] warning: 18_directive_lines.c:2:16: annotation macros not expanded: macro expansion is disabled at this position
+[tricera-preprocessor] warning: 18_directive_lines.c:4:8: annotation macros not expanded: macro expansion is disabled at this position
+[tricera-preprocessor] warning: 18_directive_lines.c:5:14: annotation macros not expanded: macro expansion is disabled at this position
+[tricera-preprocessor] warning: 18_directive_lines.c:7:8: annotation macros not expanded: macro expansion is disabled at this position
+22_pragma_counter.c: exit code 0
+[tricera-preprocessor] warning: 22_pragma_counter.c:5:3: annotation macros not expanded: expanding it would use _Pragma
+[tricera-preprocessor] warning: 22_pragma_counter.c:7:3: annotation macros not expanded: expanding it would use _Pragma
+[tricera-preprocessor] warning: 22_pragma_counter.c:8:3: annotation macros not expanded: expanding it would use __COUNTER__
+[tricera-preprocessor] warning: 22_pragma_counter.c:9:3: annotation macros not expanded: expanding it would use _Pragma
+32_comment_extent.c: exit code 0
+[tricera-preprocessor] warning: 32_comment_extent.c:7:3: annotation macros not expanded: the expansion would change where the comment ends
+[tricera-preprocessor] warning: 32_comment_extent.c:9:3: annotation macros not expanded: the expansion would change where the comment ends
+[tricera-preprocessor] warning: 32_comment_extent.c:12:3: annotation macros not expanded: the expansion would change where the comment ends
+33_diag_suppressed.c (-pedantic -DLIM=7): exit code 0
+/* With -pedantic, expanding VA() with no variadic argument would warn.
+   Diagnostics during expansion are suppressed: the annotation is still
+   expanded and nothing is printed. */
+#define VA(a, ...) (a)
+int f(int x) {
+  //@ assert () == 0 && 7 > 0;
+  return x;
+}
+
+=== warnings with -q ===
+exit code: 0, stderr bytes: 0

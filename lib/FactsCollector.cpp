@@ -9,6 +9,7 @@
 #include "clang/AST/Type.h"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
@@ -207,6 +208,23 @@ static bool containsIdentifier(StringRef text, StringRef name) {
   return ident == name;
 }
 
+// a YAML double-quoted scalar
+static std::string yamlQuoted(StringRef text) {
+  std::string s;
+  raw_string_ostream os(s);
+  os << '"';
+  for (unsigned char c : text) {
+    if (c == '"' || c == '\\')
+      os << '\\' << c;
+    else if (c < 0x20 || c == 0x7f)
+      os << "\\x" << format_hex_no_prefix(c, 2);
+    else
+      os << c;
+  }
+  os << '"';
+  return os.str();
+}
+
 bool writeFacts(StringRef path, const ProgramFacts &facts,
                 StringRef finalText, std::string &error) {
   bool clockTokenSeen = containsIdentifier(finalText, "clock");
@@ -267,6 +285,17 @@ bool writeFacts(StringRef path, const ProgramFacts &facts,
     for (size_t i = 0; i < facts.typedefs.size(); ++i)
       out << "  - name: " << facts.typedefs[i].name << "\n"
           << "    underlying: \"" << facts.typedefs[i].underlying << "\"\n";
+  }
+  out << "# annotations whose macros could not be expanded\n";
+  if (facts.skippedAnnotations.empty())
+    out << "skippedAnnotations: []\n";
+  else {
+    out << "skippedAnnotations:\n";
+    for (const SkippedAnnotation &a : facts.skippedAnnotations)
+      out << "  - line: " << a.line << "\n"
+          << "    column: " << a.column << "\n"
+          << "    reason: " << yamlQuoted(a.reason) << "\n"
+          << "    text: " << yamlQuoted(a.text) << "\n";
   }
   return true;
 }

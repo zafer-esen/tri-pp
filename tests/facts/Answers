@@ -20,6 +20,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 nothing_referenced.c
 exit code: 0
@@ -42,6 +44,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 malloc_in_removed_decl.c
 exit code: 0
@@ -64,6 +68,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 sized_array.c
 exit code: 0
@@ -86,6 +92,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 unbounded_array_param.c
 exit code: 0
@@ -108,6 +116,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 determinize_adds_arrays.c
 exit code: 0
@@ -130,6 +140,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 determinize_with_own_arrays.c
 exit code: 0
@@ -152,6 +164,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 time_tokens.c
 exit code: 0
@@ -174,6 +188,8 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 exceptions.cpp
 exit code: 0
@@ -196,3 +212,39 @@ durationTokenSeen: false
 # C++ names introduced by template instantiation, and what they stand for
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
+
+skipped_annotations.c
+exit code: 0
+---
+# facts about the produced program; a missing fact means "not determined"
+# allocation functions the program references
+allocationFunctions: []
+# declarations with array types / with arrays of unknown bound
+usesArrays: false
+usesUnboundedArrays: false
+# C++ exceptions
+usesThrow: false
+usesTryCatch: false
+# inputs added by the determinizer (also in the INPUT header comment)
+inputVariables: []
+inputArrays: []
+# clock/duration are TriCera keywords; reported when the token appears
+clockTokenSeen: false
+durationTokenSeen: false
+# C++ names introduced by template instantiation, and what they stand for
+mangledNames: []
+typedefs:
+  - name: myint
+    underlying: "int"
+# annotations whose macros could not be expanded
+skippedAnnotations:
+  - line: 10
+    column: 3
+    reason: "the expansion would change where the comment ends"
+    text: "/*@ assert s != CLOSE && '#' != ':' && \"\\\"\" != s;"
+  - line: 13
+    column: 3
+    reason: "the expansion would change where the comment ends"
+    text: "//@ assert x > 0; ID(\\)"

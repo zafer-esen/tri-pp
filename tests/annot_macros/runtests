@@ -1,0 +1,121 @@
+#!/bin/sh
+
+# --expand-annot-macros: C macros inside ACSL annotations (//@ ..., /*@ */)
+# are expanded with the macro table at the comment's position, like cpp
+# would. Only the text of each macro invocation is replaced; every
+# annotation keeps its line count, so the output keeps the input's line
+# numbering. Annotations that cannot be expanded safely are kept verbatim
+# with a warning on stderr (suppressed by -q, see the last section).
+
+# run <file> <args...>: exit code, line count check, output
+run() {
+    name=$1; shift
+    echo
+    echo "--- $name ---"
+    $TRI_CMD "$@" "$name" -o Output.tmp -- -xc -Wno-everything 2>Output.err
+    echo "exit code: $?"
+    sed "s|$PWD/||" Output.err
+    if [ "$(($(wc -l < "$name")))" = "$(($(wc -l < Output.tmp)))" ]; then
+        echo "line count: kept"
+    else
+        echo "line count: CHANGED"
+    fi
+    cat Output.tmp
+    rm -f Output.tmp Output.err
+}
+
+X="--expand-annot-macros --no-decl-slice"
+
+run 01_funclike.c "$@" $X
+run 02_objlike.c "$@" $X
+run 03_nested.c "$@" $X
+run 04_empty.c "$@" $X
+run 05_undef_redef.c "$@" $X
+run 06_assert_h.c "$@" $X
+run 07_assert_local.c "$@" $X
+run 08_old_result.c "$@" $X
+run 09_at_labels.c "$@" $X
+run 10_valid_ranges.c "$@" $X
+run 11_multiline.c "$@" $X
+run 12_ghost.c "$@" $X
+run 13_stringify_paste.c "$@" $X
+run 14_variadic.c "$@" $X
+run 15_if0.c "$@" $X
+run 16_no_newline_line.c "$@" $X
+run 16_no_newline_block.c "$@" $X
+run 17_in_macro_args.c "$@" $X
+run 18_directive_lines.c "$@" $X
+run 19_after_if_for.c "$@" $X
+run 20_funclike_noparen.c "$@" $X
+run 22_pragma_counter.c "$@" $X
+run 23_misc_lexing.c "$@" $X
+run 24_selfref.c "$@" $X
+run 25_block_in_code.c "$@" $X
+run 26_spacing.c "$@" $X
+run 28_loop_annots.c "$@" $X
+run 31_header.c "$@" $X
+run 32_comment_extent.c "$@" $X
+
+# without the flag the annotations pass through untouched
+echo
+echo "=== without --expand-annot-macros ==="
+run 01_funclike.c "$@" --no-decl-slice
+run 10_valid_ranges.c "$@" --no-decl-slice
+
+# the round is not part of the --make-calls-unique / --determinize
+# pipelines (TriCera re-runs those on tri-pp's own output)
+echo
+echo "=== --make-calls-unique, --determinize ==="
+run 01_funclike.c "$@" --expand-annot-macros --make-calls-unique
+run 01_funclike.c "$@" --expand-annot-macros --determinize
+
+# no macros in annotations: output and facts byte-identical to a run
+# without the flag
+echo
+echo "=== no macros in annotations: identical to a run without the flag ==="
+for f in 29_no_macros_in_annots.c ../line_markers/acsl_annotations.c; do
+    $TRI_CMD "$@" "$f" -o Output.a --facts Output.a.yml -- -xc -Wno-everything 2>/dev/null
+    ra=$?
+    $TRI_CMD "$@" --expand-annot-macros "$f" -o Output.b --facts Output.b.yml -- -xc -Wno-everything 2>/dev/null
+    rb=$?
+    echo "$f: exit codes $ra/$rb"
+    if cmp -s Output.a Output.b && cmp -s Output.a.yml Output.b.yml; then
+        echo "byte-identical: PASS"
+    else
+        echo "byte-identical: FAIL"
+        diff Output.a Output.b
+    fi
+    rm -f Output.a Output.b Output.a.yml Output.b.yml
+done
+run 29_no_macros_in_annots.c "$@" --expand-annot-macros
+
+# together with --line-markers: the for-loop extraction changes the line
+# count, the expanded annotations do not; probes map to their lines
+echo
+echo "=== with --line-markers ==="
+$TRI_CMD "$@" --expand-annot-macros --line-markers 30_line_markers.c -o Output.lm.c -- -xc -Wno-everything 2>&1
+echo "exit code: $?"
+python3 ../line_markers/check_markers.py 30_line_markers.c Output.lm.c
+echo "checker exit code: $?"
+sed "s|$PWD/||" Output.lm.c
+rm -f Output.lm.c
+
+# warnings go to stderr without -q (and do not change the exit code)
+echo
+echo "=== warnings (without -q) ==="
+for f in 17_in_macro_args.c 18_directive_lines.c 22_pragma_counter.c \
+         32_comment_extent.c; do
+    $TRI_CMD --expand-annot-macros "$f" -o /dev/null -- -xc -Wno-everything 2>Output.err
+    echo "$f: exit code $?"
+    sed "s|$PWD/||" Output.err
+done
+$TRI_CMD --expand-annot-macros --no-decl-slice 33_diag_suppressed.c -o Output.tmp -- -xc -pedantic -DLIM=7 2>Output.err
+echo "33_diag_suppressed.c (-pedantic -DLIM=7): exit code $?"
+sed "s|$PWD/||" Output.err
+cat Output.tmp
+rm -f Output.tmp
+echo
+echo "=== warnings with -q ==="
+$TRI_CMD -q --expand-annot-macros 32_comment_extent.c -o /dev/null -- -xc -Wno-everything 2>Output.err
+echo "exit code: $?, stderr bytes: $(($(wc -c < Output.err)))"
+rm -f Output.err

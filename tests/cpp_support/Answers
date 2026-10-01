@@ -30,6 +30,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- namespaces_nested.cpp ---
 namespace university {
@@ -57,6 +59,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- templates_basic.cpp ---
 class Box_double_ {
@@ -123,6 +127,8 @@ mangledNames:
   - mangled: Box_double_
     original: "Box<double>"
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- templates_complex.cpp ---
 class Pair_int__char_ {
@@ -174,6 +180,8 @@ mangledNames:
   - mangled: add_double_
     original: "add<double>"
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- templates_typedef.cpp ---
 class Box_char_ {
@@ -245,6 +253,8 @@ mangledNames:
 typedefs:
   - name: IntBox
     underlying: "class Box_int_"
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- elab_type_simple.cpp ---
 class C {
@@ -264,6 +274,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- elab_type_nested_classes.cpp ---
 class Outermost {
@@ -285,6 +297,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- access_member_vars.cpp ---
 class C {
@@ -312,6 +326,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- throw_test.cpp ---
 class MyException {};
@@ -352,6 +368,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- throw_with_cast.cpp ---
 class MyException {};
@@ -382,6 +400,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- qualified_function_calls.cpp ---
 class A {
@@ -440,6 +460,8 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []
 
 --- non_qual_dtor.cpp ---
 class C {
@@ -461,3 +483,5 @@ int main() {
 --- mangledNames ---
 mangledNames: []
 typedefs: []
+# annotations whose macros could not be expanded
+skippedAnnotations: []

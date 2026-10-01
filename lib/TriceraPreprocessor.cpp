@@ -17,6 +17,7 @@
 #include "NondetLoopGuardRewriter.hpp"
 #include "UniqueCallSiteTransformer.hpp"
 #include "CXXToCPlusTranslator.hpp"
+#include "AnnotationMacroExpander.hpp"
 
 using namespace clang;
 using namespace ast_matchers;
@@ -34,6 +35,28 @@ void MainConsumer::runStage(Stage stage, clang::ASTContext &Ctx,
                             UsedFunAndTypeCollector &usedFunsAndTypes,
                             bool hadError) {
   switch (stage) {
+  case Stage::ANNOT_MACRO_EXPAND: {
+    // expand the macros in the ACSL annotations; the expansions were made
+    // while this parse lexed the comments
+    rewriter.setActiveTransformer("AnnotationMacroExpander");
+    SourceManager &SM = Ctx.getSourceManager();
+    for (const AnnotationExpansion &a : annotExpander->results()) {
+      SourceLocation loc = SM.getComposedLoc(a.fid, a.offset);
+      if (a.skipReason.empty()) {
+        rewriter.ReplaceText(loc, a.originalText.size(), a.expandedText);
+        continue;
+      }
+      PresumedLoc p = SM.getPresumedLoc(loc);
+      llvm::errs() << "[tricera-preprocessor] warning: " << p.getFilename()
+                   << ":" << p.getLine() << ":" << p.getColumn()
+                   << ": annotation macros not expanded: " << a.skipReason
+                   << "\n";
+      StringRef firstLine = StringRef(a.originalText).split('\n').first;
+      state.facts.skippedAnnotations.push_back(
+          {p.getLine(), p.getColumn(), a.skipReason, firstLine.trim().str()});
+    }
+    break;
+  }
   case Stage::CXX_TO_CPLUS: {
     // translate C++ to the C+ subset
     if (!Ctx.getLangOpts().CPlusPlus)

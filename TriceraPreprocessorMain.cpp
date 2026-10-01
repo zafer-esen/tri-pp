@@ -2,6 +2,7 @@
 #include "TriceraConfig.hpp"
 #include "LineMarkerEmitter.hpp"
 #include "FactsCollector.hpp"
+#include "AnnotationMacroExpander.hpp"
 
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/CommonOptionsParser.h"
@@ -58,6 +59,10 @@ cl::opt<std::string> factsFilename("facts",
                               "to the given path"),
                      cl::value_desc("facts file path"),
                      cl::cat(TPCategory), cl::init(""));
+cl::opt<bool> expandAnnotMacros("expand-annot-macros",
+                     cl::desc("Expand C preprocessor macros inside ACSL "
+                              "annotation comments"),
+                     cl::cat(TPCategory));
 
 //===----------------------------------------------------------------------===//
 // PluginASTAction
@@ -73,8 +78,11 @@ public:
     state.tracker = EditTracker(); // this parse's edits only
     trackedRewriter = std::make_unique<TrackedRewriter>(rewriter,
                                                         state.tracker);
+    if (state.rounds[state.nextRound] == Round{Stage::ANNOT_MACRO_EXPAND})
+      annotExpander =
+          std::make_unique<AnnotationMacroExpander>(CI.getPreprocessor());
     return std::make_unique<MainConsumer>(*trackedRewriter, preprocessOutput,
-                                          state);
+                                          state, annotExpander.get());
   }
 
   // single-line, length-capped rendering of edit text for diagnostics
@@ -105,6 +113,8 @@ public:
   }
 
   void EndSourceFileAction() override {
+    if (annotExpander)
+      annotExpander->detach();
     SourceManager &sm = rewriter.getSourceMgr();
 
     // order-dependent rewrites are a bug; report them, produce no output
@@ -150,6 +160,7 @@ private:
   clang::Rewriter rewriter;
   StagedState &state;
   std::unique_ptr<TrackedRewriter> trackedRewriter;
+  std::unique_ptr<AnnotationMacroExpander> annotExpander;
   StringRef inFile;
 };
 
@@ -218,8 +229,15 @@ newFactsActionFactory(ProgramFacts &facts) {
 // canonised before the typedefs are removed (TypeCanonise also names
 // anonymous tags, so its output parses on its own). CXX_TO_CPLUS is a
 // no-op on C inputs, so its round is free there (the parse is reused).
+//
+// ANNOT_MACRO_EXPAND optionally runs first, on the parse that lexes the
+// comments. It is not part of the --make-calls-unique and --determinize
+// pipelines, which run on tri-pp's own output: expanding again is not a
+// no-op for self-referential macros.
 static std::vector<Round> computeRounds() {
   std::vector<Round> rounds;
+  if (expandAnnotMacros && !makeCallsUnique && !determinize)
+    rounds.push_back(Round{Stage::ANNOT_MACRO_EXPAND});
   rounds.push_back(Round{Stage::CXX_TO_CPLUS});
   if (makeCallsUnique) {
     rounds.push_back(Round{Stage::MAKE_CALLS_UNIQUE});

@@ -1,4 +1,4 @@
 #ifndef TRICERA_CONFIG_HPP
 #define TRICERA_CONFIG_HPP
-#define TRI_PP_VERSION "0.3.3"
+#define TRI_PP_VERSION "0.3.4"
 #endif

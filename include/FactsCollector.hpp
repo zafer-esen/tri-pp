@@ -21,6 +21,14 @@ struct TypedefMapping {
   std::string underlying;
 };
 
+// an annotation whose macros were not expanded
+struct SkippedAnnotation {
+  unsigned line;
+  unsigned column;
+  std::string reason;
+  std::string text; // the first line of the annotation, trimmed
+};
+
 struct ProgramFacts {
   // names of the allocation functions the program references
   std::set<std::string> allocationFunctions;
@@ -38,6 +46,8 @@ struct ProgramFacts {
   std::vector<MangledName> mangledNames;
   // eliminated typedefs and the underlying type spelling they expand to
   std::vector<TypedefMapping> typedefs;
+  // annotations kept verbatim by the annotation macro expansion
+  std::vector<SkippedAnnotation> skippedAnnotations;
 };
 
 // collects the facts above from the AST

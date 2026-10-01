@@ -2,9 +2,9 @@
 
 # Facts sidecar: --facts <path> writes a small YAML file stating facts
 # about the produced program (referenced allocation functions, array
-# declarations, clock/duration tokens); what to do with them is TriCera's
-# decision. The program output itself goes to /dev/null; only the facts
-# files are compared.
+# declarations, clock/duration tokens, annotations whose macros could not
+# be expanded); what to do with them is TriCera's decision. The program
+# output itself goes to /dev/null; only the facts files are compared.
 
 run() {
     name=$1; shift
@@ -30,3 +30,4 @@ run determinize_adds_arrays.c "$@" --determinize
 run determinize_with_own_arrays.c "$@" --determinize
 run time_tokens.c "$@"
 run exceptions.cpp "$@"
+run skipped_annotations.c "$@" --expand-annot-macros

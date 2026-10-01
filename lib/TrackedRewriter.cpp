@@ -115,6 +115,15 @@ bool TrackedRewriter::ReplaceText(SourceRange range, StringRef NewStr) {
   return false;
 }
 
+bool TrackedRewriter::ReplaceText(SourceLocation Start, unsigned OrigLength,
+                                  StringRef NewStr) {
+  if (rewriter.ReplaceText(Start, OrigLength, NewStr))
+    return true;
+  recordAt(Start, 0, TrackedEdit::Kind::REPLACEMENT, OrigLength, NewStr,
+           /*insertAfter=*/true);
+  return false;
+}
+
 // whitespace of the same geometry as the original buffer at [offset,
 // offset+length): newlines kept, everything else a space
 static std::string whitespaceFor(StringRef buf, unsigned offset,

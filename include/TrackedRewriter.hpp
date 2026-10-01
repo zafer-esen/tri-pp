@@ -129,6 +129,10 @@ public:
 
   bool ReplaceText(clang::SourceRange range, llvm::StringRef NewStr);
 
+  // replaces the OrigLength characters starting at Start
+  bool ReplaceText(clang::SourceLocation Start, unsigned OrigLength,
+                   llvm::StringRef NewStr);
+
   // replaces the token range with whitespace of identical geometry
   // keeps newlines
   bool BlankText(clang::SourceRange range);

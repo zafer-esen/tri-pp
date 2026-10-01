@@ -16,10 +16,12 @@
 #include <vector>
 
 class UsedFunAndTypeCollector;
+class AnnotationMacroExpander;
 
 // one transformer stage; each round runs on a fresh parse of the previous
 // round's text, so rounds cannot conflict
 enum class Stage {
+  ANNOT_MACRO_EXPAND,
   CXX_TO_CPLUS,
   TYPE_CANONISE,
   TYPEDEF_REMOVE,
@@ -51,8 +53,10 @@ class MainConsumer : public clang::ASTConsumer {
 public:
   MainConsumer(TrackedRewriter &rewriter,
                PreprocessOutput &out,
-               StagedState &state) :
-               rewriter(rewriter), preprocessOutput(out), state(state) {}
+               StagedState &state,
+               const AnnotationMacroExpander *annotExpander = nullptr) :
+               rewriter(rewriter), preprocessOutput(out), state(state),
+               annotExpander(annotExpander) {}
   void HandleTranslationUnit(clang::ASTContext& Ctx) override;
   ~MainConsumer() override;
 
@@ -63,4 +67,5 @@ private:
   TrackedRewriter &rewriter;
   PreprocessOutput &preprocessOutput;
   StagedState &state;
+  const AnnotationMacroExpander *annotExpander;
 };
