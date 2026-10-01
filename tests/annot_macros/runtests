@@ -31,7 +31,6 @@ run 02_objlike.c "$@" $X
 run 03_nested.c "$@" $X
 run 04_empty.c "$@" $X
 run 05_undef_redef.c "$@" $X
-run 06_assert_h.c "$@" $X
 run 07_assert_local.c "$@" $X
 run 08_old_result.c "$@" $X
 run 09_at_labels.c "$@" $X

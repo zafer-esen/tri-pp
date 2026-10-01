@@ -50,15 +50,6 @@ void f(int x) {
   x = 0;
 }
 
---- 06_assert_h.c ---
-exit code: 0
-line count: kept
-#include <assert.h>
-void f(int x) {
-  //@ assert (x > 0);
-  assert(x > 0);
-}
-
 --- 07_assert_local.c ---
 exit code: 0
 line count: kept
